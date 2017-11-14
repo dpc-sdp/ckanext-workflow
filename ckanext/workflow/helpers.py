@@ -20,7 +20,7 @@ def load_workflow_settings():
 
     results = get_results('gophers')
     '''
-    path = config.get('ckan.workflow.json_config', '/usr/lib/ckan/default/src/ckanext-workflow/ckanext/workflow/settings.json')
+    path = config.get('ckan.workflow.json_config', '/usr/lib/ckan/default/src/ckanext-workflow/ckanext/workflow/example.settings.json')
     with open(path) as json_data:
         d = json.load(json_data)
         return d
