@@ -1,19 +1,13 @@
 import ckan.authz as authz
+import ckan.model as model
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 import logging
 import ckan.logic as logic
 
-from inspect import getmembers
-from pprint import pprint
+#from inspect import getmembers
+#from pprint import pprint
 from ckan.common import config
-
-# Try importing the helpers from ckanext-hierarchy
-#from ckanext.hierarchy import helpers
-
-# Not needed - using toolkit.c
-#from ckan.common import c
-import ckan.model as model
 
 from ckanext.workflow import helpers
 from ckanext.workflow.logic import actions
@@ -38,10 +32,76 @@ class WorkflowPlugin(plugins.SingletonPlugin):
 
     def create(self, entity):
         #log1.debug('*** IPackageController: `create` ***')
-        entity.extras['workflow_status'] = 'draft';
+        # DATAVIC-56: "Each dataset is initially created in a 'Draft' status"
+        entity.extras['workflow_status'] = 'draft'
         return entity
 
     def edit(context, entity):
+        user = toolkit.c.userobj
+        role = helpers.role_in_org(entity.owner_org, user.name)
+
+        # Dataset is Private until workflow_status becomes "published"
+        entity.private = True
+
+        # Sysadmin can do whatever they like..
+        if not authz.is_sysadmin(user.name):
+            # Get the existing dataset to compare workflow_status
+            dataset = model.Package.get(entity.id)
+            current_workflow_status = dataset.extras['workflow_status']
+
+            from pprint import pprint
+            pprint(dataset)
+            print(current_workflow_status)
+            #
+            # import sys
+            # sys.exit(dataset)
+            #
+            # Validate the workflow_status in context of the user's role
+            workflow_status = entity.extras['workflow_status']
+
+            # TODO: Refactor these workflows into the .json settings file if possible.
+            if role == 'editor':
+                # editor can do the following:
+                # draft > needs_review
+                # needs_review > draft
+                # published > draft
+                # published > archived
+                # archived > draft
+                if current_workflow_status == 'published' and workflow_status != 'archived':
+                    workflow_status = 'draft'
+                elif current_workflow_status == 'draft' and workflow_status != 'draft':
+                    workflow_status = 'needs_review'
+                elif current_workflow_status == 'needs_review' and workflow_status != 'needs_review':
+                    workflow_status = 'draft'
+                elif current_workflow_status == 'archived' and workflow_status != 'draft':
+                    workflow_status = 'draft'
+            elif role == 'admin':
+                # admin can do the following:
+                # draft > needs_review
+                # needs_review > published
+                # needs_review > draft
+                # published > draft
+                # published > archived
+                # archived > draft
+                if not current_workflow_status == workflow_status:
+                    if current_workflow_status == 'draft' and workflow_status != 'draft':
+                        workflow_status = 'needs_review'
+                    elif current_workflow_status == 'needs_review' and workflow_status != 'published':
+                        workflow_status = 'draft'
+                    elif current_workflow_status == 'published' and workflow_status != 'archived':
+                        workflow_status = 'draft'
+                    elif current_workflow_status == 'archived' and workflow_status != 'draft':
+                        workflow_status = 'draft'
+
+            # Assign the adjusted workflow_status back to the entity
+            entity.extras['workflow_status'] = workflow_status
+
+        if entity.extras['workflow_status'] == 'published':
+            # Super Admins can publish datasets
+            # The only other user that can publish datasets are admins of the organization
+            if authz.is_sysadmin(user.name) or role == "admin":
+                entity.private = False
+
         return entity
 
     def delete(self, entity):
@@ -57,56 +117,13 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_search(self, search_params):
-        log1.debug('*** IPackageController -- before_search ***')
+        log1.debug("*** IPackageController -- before_search ***\n*** controller: %s | action: %s ***", \
+                   toolkit.c.controller, toolkit.c.action)
 
-
-        return search_params
-
-        # Check the config for `internal_protected_site_read`
-        private_site = config.get('ckan.victheme.internal_protected_site_read', True)
-
-        if (private_site != True):
-            return search_params
-
-        # Assuming this is a private site -- all rules apply
-
-        # Check that the user is logged in..
-        if (authz.auth_is_loggedin_user() != True):
-            log1.debug('*** NOT a logged in User ***')
-            search_params['fq'] = '+workflow_status:(impossible) ' + search_params['fq']
+        if helpers.is_private_site_and_user_not_logged_in():
+            search_params['abort_search'] = True
         else:
-            log1.debug('*** User IS logged in ***')
-
-            user = toolkit.c.userobj
-
-            # group types are: organization & group
-            user_organizations = user.get_groups('organization')
-
-            for organization in user_organizations:
-                # group = model.Group.get(organization.id)
-
-
-                for parent in organization.get_parent_groups('organization'):
-                    str_parents += "\n" + parent.id + " | " + parent.name
-
-            # if authz.is_sysadmin(user.name) and (search_params.get('include_drafts', None) is None):
-            if authz.is_sysadmin(user.name):
-                search_params['include_drafts'] = True
-            #else:
-                #search_params['fq'] = '+extract:(published OR needs_review workflow_drxft) ' + search_params['fq']
-                # search_params['fq'] = '+workflow_status:(published OR draft) ' + search_params['fq']
-                #search_params['fq'] = '+(owner_org:(d0346b02-dadf-421c-95fc-980397224575)) ' + search_params['fq']
-             #   search_params['fq'] = ' OR (owner_org:"d0346b02-dadf-421c-95fc-980397224575") ' + search_params['fq']
-
-            # orgs = logic.get_action('organization_list_for_user')(
-            #     {'user': user.name}, {'permission': 'read'})
-
-            # #role = authz.users_role_for_group_or_org(pkg_dict['owner_org'], user.name)
-
-            # search_params['fq'] = '+extract:(published OR workflow_drxft) ' + search_params['fq']
-
-        log1.debug('*** search_params: ***')
-        pprint(search_params)
+            search_params['include_private'] = True
 
         return search_params
 
@@ -117,5 +134,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_view(self, pkg_dict):
-        log1.debug('*** IPackageController -- before_view -- ID: %s | Name: %s ***', pkg_dict['id'], pkg_dict['name'])
+        log1.debug('*** IPackageController -- before_view -- ID: %s | Name: %s *** | owner_org: %s', pkg_dict['id'], pkg_dict['name'], pkg_dict['owner_org'])
+        if helpers.is_private_site_and_user_not_logged_in():
+            toolkit.redirect_to('user_login')
         return pkg_dict

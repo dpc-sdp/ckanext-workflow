@@ -3,11 +3,13 @@ import ckan.authz as authz
 import ckan.lib.navl.dictization_functions
 import ckan.lib.search as search
 import ckan.logic as logic
-import ckan.model as model
+# import ckan.model as model
 import ckan.plugins as plugins
+import ckan.plugins.toolkit as toolkit
 import logging
 import json
 from ckanext.workflow import helpers
+from ckanext.workflow.logic import queries
 from pprint import pprint
 from paste.deploy.converters import asbool
 
@@ -17,79 +19,11 @@ _check_access = logic.check_access
 log1 = logging.getLogger(__name__)
 
 
-# Construct a search filter query based on the `organiszation_visibility`
-# rules outlined in DATAVIC-56 - based around the current user.
-def organization_visibility_filter_query(username):
-    log1.debug('*** PACKAGE_SEARCH | organization_visibility_filter_query ***')
-
-    # Load some config info from a json file
-    #pprint(helpers.load_json_workflow_options())
-
-    #log1.debug('*** Username %s ***', username)
-
-    user = model.User.get(username)
-
-    fq = ''
-
-    #log1.debug('*** User %s - %s ***', user.id, user.name)
-
-    user_organizations = user.get_groups('organization')
-
-    #pprint(user_organizations)
-
-    for organization in user_organizations:
-
-        fq += ' OR ( ( '
-
-        fq += '( owner_org:(' + organization.id + ') ) '
-
-        #log1.debug('*** organization %s - %s ***', organization.id, organization.name)
-        # User's role in organisation:
-        role = authz.users_role_for_group_or_org(organization.id, username)
-        #log1.debug('*** role %s ***', role)
-
-        '''
-        PLEASE NOTE: These rules MAY appear to be labelled incorrectly
-        BUT - they need to operate inversely as the search is dataset centric
-        but we are approaching from a User centric standpoint..
-        '''
-        # CURRENT
-        # Takes care of itself really..
-
-        # PARENT
-        # Dataset Organisation Visibility = Parent -- Get this Organization's Child orgs...
-        for child in organization.get_children_groups('organization'):
-            fq += ' OR ( owner_org:(' + child.id + ') AND organization_visibility:"parent" ) '
-
-        # CHILD
-        # Dataset Organisation Visibility = Child -- Get this Organization's Parent orgs...
-        for parent in organization.get_parent_groups('organization'):
-            fq += ' OR ( owner_org:(' + parent.id + ') AND organization_visibility:"child" ) '
-
-        # FAMILY
-        # Dataset Organisation Visibility = Family -- Get this Organization's Ancestor & Descendent orgs...
-        for ancestor in organization.get_parent_group_hierarchy('organization'):
-            fq += ' OR ( owner_org:(' + ancestor.id + ') AND organization_visibility:"family" ) '
-
-        for descendent in organization.get_children_group_hierarchy('organization'):
-            fq += ' OR ( owner_org:(' + descendent.id + ') AND organization_visibility:"family" ) '
-
-        # ALL
-        # Dataset Organisation Visibility = All...
-        fq += ' OR ( organization_visibility:"all" AND workflow_status:"published" ) '
-
-        fq += ' ) '
-
-        if role == 'member':
-            fq += ' AND workflow_status:"published" '
-
-        fq += ' ) '
-
-    return fq
-
 @logic.side_effect_free
 def datavic_package_search(context, data_dict):
-    #pprint(context)
+    # DEBUG:
+    log1.debug(helpers.big_separator())
+    log1.debug("*** datavic_package_search PACKAGE_SEARCH ***")
     '''
     NOTE: This is copied directly from:
     
@@ -242,7 +176,6 @@ def datavic_package_search(context, data_dict):
         data_dict['extras'][key] = data_dict.pop(key)
 
     # check if some extension needs to modify the search params
-    # TODO: DISABLED INCLUSION OF PLUGINS FOR DATAVIC - FOR NOW!!!
     for item in plugins.PluginImplementations(plugins.IPackageController):
         data_dict = item.before_search(data_dict)
 
@@ -252,8 +185,6 @@ def datavic_package_search(context, data_dict):
 
     if data_dict.get('sort') in (None, 'rank'):
         data_dict['sort'] = 'score desc, metadata_modified desc'
-
-
 
     results = []
     if not abort:
@@ -273,34 +204,68 @@ def datavic_package_search(context, data_dict):
         include_private = asbool(data_dict.pop('include_private', False))
         include_drafts = asbool(data_dict.pop('include_drafts', False))
 
+        # DATAVIC-56: Use the controller and action to set search params
+        controller_action = '{0}.{1}'.format(toolkit.c.controller, toolkit.c.action)
+
         capacity_fq = 'capacity:"public"'
         if include_private and authz.is_sysadmin(user):
             capacity_fq = None
-        elif include_private and user:
+        elif controller_action == 'organization.read':
+            # DEBUG:
+            log1.debug(helpers.separator())
+            if 'owner_org:' in fq:
+                organization_id = helpers.get_organization_id(data_dict, fq)
+            elif 'owner_org' in data_dict.get('q', ''):
+                organization_id = helpers.get_organization_id(data_dict, data_dict.get('q', ''))
+            else:
+                pprint(data_dict)
+                import sys
+                sys.exit(["I don't know how to handle this yet.", data_dict])
+
+            org_read_fq = queries.organization_read_filter_query(organization_id, user)
+            capacity_fq = '({0} {1})'.format(capacity_fq, org_read_fq)
+
+            if 'owner_org:' in fq:
+                # Remove the `owner_org` from the `fq` search param as we've now used it to
+                # reconstruct the search params for Organization view
+                fq = ' '.join(p for p in fq.split() if 'owner_org:' not in p)
+
+            # DEBUG:
+            log1.debug(helpers.separator())
+        elif controller_action == 'package.search':
             '''
                 DataVic: Implement our own logic for determining the organisational search rules..
             '''
-            # orgs = logic.get_action('organization_list_for_user')(
-            #     {'user': user}, {'permission': 'read'})
-            # if orgs:
-            #     capacity_fq = '({0} OR owner_org:({1}))'.format(
-            #         capacity_fq,
-            #         ' OR '.join(org['id'] for org in orgs))
-            if 'group' in context:
-                import sys
-                # sys.exit(context)
-            else:
-                org_visibility_fq = organization_visibility_filter_query(user)
-                capacity_fq = '({0} {1})'.format(capacity_fq, org_visibility_fq)
-
-            if include_drafts:
-                capacity_fq = '({0} OR creator_user_id:({1}))'.format(
+            capacity_fq = queries.package_search_filter_query(user)
+        else:
+            # This is the default CKAN search behaviour retained from the core package_search function
+            orgs = logic.get_action('organization_list_for_user')(
+                {'user': user}, {'permission': 'read'})
+            if orgs:
+                capacity_fq = '({0} OR owner_org:({1}))'.format(
                     capacity_fq,
-                    authz.get_user_id_for_username(user))
+                    ' OR '.join(org['id'] for org in orgs))
+
+        if include_drafts and user:
+            capacity_fq = '({0} OR creator_user_id:({1}))'.format(
+                capacity_fq,
+                authz.get_user_id_for_username(user))
+
+        # DEBUG:
+        if controller_action in ['organization.read', 'package.search']:
+            log1.debug('*** DATA_DICT BEFORE capacity_fq ***')
+            log1.debug(pprint(data_dict))
+            log1.debug(helpers.separator())
 
         if capacity_fq:
             fq = ' '.join(p for p in fq.split() if 'capacity:' not in p)
             data_dict['fq'] = capacity_fq + ' ' + fq
+
+        # DEBUG:
+        if controller_action in ['organization.read', 'package.search']:
+            log1.debug('*** DATA_DICT AFTER capacity_fq ***')
+            log1.debug(pprint(data_dict))
+            log1.debug(helpers.separator())
 
         fq = data_dict.get('fq', '')
         if include_drafts:
@@ -320,7 +285,13 @@ def datavic_package_search(context, data_dict):
         extras = data_dict.pop('extras', None)
 
         query = search.query_for(model.Package)
-        #pprint(data_dict)
+
+        # DEBUG:
+        if controller_action in ['organization.read', 'package.search']:
+            log1.debug('*** DATA_DICT BEFORE QUERY ***')
+            log1.debug(pprint(data_dict))
+            helpers.separator()
+
         query.run(data_dict)
 
         # Add them back so extensions can use them on after_search
@@ -356,6 +327,7 @@ def datavic_package_search(context, data_dict):
         'sort': data_dict['sort']
     }
 
+
     # create a lookup table of group name to title for all the groups and
     # organizations in the current search's facets.
     group_names = []
@@ -363,8 +335,8 @@ def datavic_package_search(context, data_dict):
         group_names.extend(facets.get(field_name, {}).keys())
 
     groups = (session.query(model.Group.name, model.Group.title)
-                    .filter(model.Group.name.in_(group_names))
-                    .all()
+              .filter(model.Group.name.in_(group_names))
+              .all()
               if group_names else [])
     group_titles_by_name = dict(groups)
 
