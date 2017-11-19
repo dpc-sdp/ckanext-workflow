@@ -211,8 +211,6 @@ def datavic_package_search(context, data_dict):
         if include_private and authz.is_sysadmin(user):
             capacity_fq = None
         elif controller_action == 'organization.read':
-            # DEBUG:
-            log1.debug(helpers.separator())
             if 'owner_org:' in fq:
                 organization_id = helpers.get_organization_id(data_dict, fq)
             elif 'owner_org' in data_dict.get('q', ''):
@@ -229,9 +227,6 @@ def datavic_package_search(context, data_dict):
                 # Remove the `owner_org` from the `fq` search param as we've now used it to
                 # reconstruct the search params for Organization view
                 fq = ' '.join(p for p in fq.split() if 'owner_org:' not in p)
-
-            # DEBUG:
-            log1.debug(helpers.separator())
         elif controller_action == 'package.search':
             '''
                 DataVic: Implement our own logic for determining the organisational search rules..
@@ -252,20 +247,20 @@ def datavic_package_search(context, data_dict):
                 authz.get_user_id_for_username(user))
 
         # DEBUG:
-        if controller_action in ['organization.read', 'package.search']:
-            log1.debug('*** DATA_DICT BEFORE capacity_fq ***')
-            log1.debug(pprint(data_dict))
-            log1.debug(helpers.separator())
+        # if controller_action in ['organization.read', 'package.search']:
+        #     log1.debug('*** DATA_DICT BEFORE capacity_fq ***')
+        #     log1.debug(pprint(data_dict))
+        #     log1.debug(helpers.separator())
 
         if capacity_fq:
             fq = ' '.join(p for p in fq.split() if 'capacity:' not in p)
             data_dict['fq'] = capacity_fq + ' ' + fq
 
         # DEBUG:
-        if controller_action in ['organization.read', 'package.search']:
-            log1.debug('*** DATA_DICT AFTER capacity_fq ***')
-            log1.debug(pprint(data_dict))
-            log1.debug(helpers.separator())
+        # if controller_action in ['organization.read', 'package.search']:
+        #     log1.debug('*** DATA_DICT AFTER capacity_fq ***')
+        #     log1.debug(pprint(data_dict))
+        #     log1.debug(helpers.separator())
 
         fq = data_dict.get('fq', '')
         if include_drafts:
@@ -287,10 +282,10 @@ def datavic_package_search(context, data_dict):
         query = search.query_for(model.Package)
 
         # DEBUG:
-        if controller_action in ['organization.read', 'package.search']:
-            log1.debug('*** DATA_DICT BEFORE QUERY ***')
-            log1.debug(pprint(data_dict))
-            helpers.separator()
+        # if controller_action in ['organization.read', 'package.search']:
+        #     log1.debug('*** DATA_DICT BEFORE QUERY ***')
+        #     log1.debug(pprint(data_dict))
+        #     helpers.separator()
 
         query.run(data_dict)
 

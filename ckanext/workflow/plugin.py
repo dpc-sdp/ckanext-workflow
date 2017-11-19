@@ -5,10 +5,7 @@ import ckan.plugins.toolkit as toolkit
 import logging
 import ckan.logic as logic
 
-#from inspect import getmembers
-#from pprint import pprint
 from ckan.common import config
-
 from ckanext.workflow import helpers
 from ckanext.workflow.logic import actions
 
@@ -27,11 +24,10 @@ class WorkflowPlugin(plugins.SingletonPlugin):
 
     # IPackageController
     def read(self, entity):
-        log1.debug('*** IPackageController -- read -- ID: %s | Name: %s ***', entity.id, entity.name)
+        # log1.debug('*** IPackageController -- read -- ID: %s | Name: %s ***', entity.id, entity.name)
         return entity
 
     def create(self, entity):
-        #log1.debug('*** IPackageController: `create` ***')
         # DATAVIC-56: "Each dataset is initially created in a 'Draft' status"
         entity.extras['workflow_status'] = 'draft'
         return entity
@@ -49,13 +45,6 @@ class WorkflowPlugin(plugins.SingletonPlugin):
             dataset = model.Package.get(entity.id)
             current_workflow_status = dataset.extras['workflow_status']
 
-            from pprint import pprint
-            pprint(dataset)
-            print(current_workflow_status)
-            #
-            # import sys
-            # sys.exit(dataset)
-            #
             # Validate the workflow_status in context of the user's role
             workflow_status = entity.extras['workflow_status']
 

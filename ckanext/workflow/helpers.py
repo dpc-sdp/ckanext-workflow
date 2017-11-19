@@ -5,7 +5,6 @@ import ckan.model as model
 import json
 import logging
 from ckan.common import config
-from pprint import pprint
 
 log1 = logging.getLogger(__name__)
 
@@ -20,17 +19,6 @@ def is_private_site_and_user_not_logged_in():
 def load_workflow_settings():
     '''
     Load some config info from a json file
-
-    CACHING of Org structure:
-    https://docs.pylonsproject.org/projects/pylons-webframework/en/latest/caching.html
-
-    @cache_region('short_term', 'search_func')
-    def get_results(search_param):
-        # do something to retrieve data
-        data = get_data(search_param)
-        return data
-
-    results = get_results('gophers')
     '''
     path = config.get('ckan.workflow.json_config', '/usr/lib/ckan/default/src/ckanext-workflow/ckanext/workflow/example.settings.json')
     with open(path) as json_data:
@@ -72,14 +60,9 @@ def get_organization_id(data_dict, fq):
         owner_org = ' '.join(p for p in fq.split() if 'owner_org:' in p)
         organization_id = owner_org.split(':')[1].replace('"', '')
     else:
-        #organization_id = "3c4088c1-4730-4c72-a927-95ba02277a99"
-        big_separator()
-        print('*** START **** WE GPNNA HAVE A PROELBME')
-        pprint(data_dict)
-        print('*** END *** WE GPNNA HAVE A PROELBM')
-        big_separator()
-        # import sys
-        # sys.exit('You killed it!')
+        # Unable to determine Organization ID (this should not occur, but needs to be trapped)
+        import sys
+        sys.exit(['Unable to determine Organization ID', data_dict])
 
     return organization_id
 
