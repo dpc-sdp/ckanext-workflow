@@ -220,8 +220,7 @@ def datavic_package_search(context, data_dict):
                 import sys
                 sys.exit(["I don't know how to handle this yet.", data_dict])
 
-            org_read_fq = queries.organization_read_filter_query(organization_id, user)
-            capacity_fq = '({0} {1})'.format(capacity_fq, org_read_fq)
+            capacity_fq = queries.organization_read_filter_query(organization_id, user)
 
             if 'owner_org:' in fq:
                 # Remove the `owner_org` from the `fq` search param as we've now used it to

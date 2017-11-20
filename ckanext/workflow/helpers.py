@@ -26,8 +26,8 @@ def load_workflow_settings():
         return d
 
 
-def role_in_org(owner_org, user_name):
-    return authz.users_role_for_group_or_org(owner_org, user_name)
+def role_in_org(organization_id, user_name):
+    return authz.users_role_for_group_or_org(organization_id, user_name)
 
 
 def get_workflow_status_options(workflows, current_workflow_status):
@@ -115,7 +115,7 @@ def get_organization_relationships_for_user(organization, user_organizations):
 
     # CHILDREN
     if is_user_in_child_organization(organization, user_organizations):
-        relationships.append('children')
+        relationships.append('child')
 
     # FAMILY
     if is_user_in_family_organization(organization, user_organizations):
