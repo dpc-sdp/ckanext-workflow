@@ -31,7 +31,7 @@ def organization_read_filter_query(organization_id, username):
             rules.append('(owner_org:"{0}")'.format(organization_id))
         else:
             # The user can see any published datasets in their own organisation
-            rules.append('(capacity:public owner_org:"{0}" AND organization_visibility:"current")'.format(organization_id))
+            rules.append('(capacity:public AND owner_org:"{0}")'.format(organization_id))
     else:
         user_organizations = helpers.get_user_organizations(username)
         relationships = helpers.get_organization_relationships_for_user(organization, user_organizations)
@@ -59,17 +59,20 @@ def package_search_filter_query(username):
     ]
 
     for organization in user_organizations:
+        role = helpers.role_in_org(organization.id, username)
+
         # Any user within the organisation that owns the dataset can see it
         # Unsure about this rule -- need to check with client..
-        rules.append('(owner_org:"{0}" AND workflow_status:"published")'.format(organization.id))
+        if role == 'admin':
+            rules.append('(owner_org:"{0}")'.format(organization.id))
+        else:
+            rules.append('(owner_org:"{0}" AND workflow_status:"published")'.format(organization.id))
 
         '''
         PLEASE NOTE: These rules MAY appear to be labelled incorrectly
         BUT - they need to operate inversely as the search is dataset centric
         but we are approaching from a User centric standpoint..
         '''
-        role = helpers.role_in_org(organization.id, username)
-
         # From client ~18/102017:
         # "...within the owning Organisation, discoverability/searchability of *unpublished*
         # data records is limited to the Org ADMIN account holders and the EDITOR account

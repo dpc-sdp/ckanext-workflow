@@ -12,7 +12,7 @@ log1 = logging.getLogger(__name__)
 def is_private_site_and_user_not_logged_in():
     private_site = config.get('ckan.victheme.internal_protected_site_read', True)
     if private_site and not authz.auth_is_loggedin_user():
-            return True
+        return True
     return False
 
 #
