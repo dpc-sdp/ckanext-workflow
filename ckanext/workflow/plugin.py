@@ -51,31 +51,31 @@ class WorkflowPlugin(plugins.SingletonPlugin):
             # TODO: Refactor these workflows into the .json settings file if possible.
             if role == 'editor':
                 # editor can do the following:
-                # draft > needs_review
-                # needs_review > draft
+                # draft > ready_for_approval
+                # ready_for_approval > draft
                 # published > draft
                 # published > archived
                 # archived > draft
                 if current_workflow_status == 'published' and workflow_status != 'archived':
                     workflow_status = 'draft'
                 elif current_workflow_status == 'draft' and workflow_status != 'draft':
-                    workflow_status = 'needs_review'
-                elif current_workflow_status == 'needs_review' and workflow_status != 'needs_review':
+                    workflow_status = 'ready_for_approval'
+                elif current_workflow_status == 'ready_for_approval' and workflow_status != 'ready_for_approval':
                     workflow_status = 'draft'
                 elif current_workflow_status == 'archived' and workflow_status != 'draft':
                     workflow_status = 'draft'
             elif role == 'admin':
                 # admin can do the following:
-                # draft > needs_review
-                # needs_review > published
-                # needs_review > draft
+                # draft > ready_for_approval
+                # ready_for_approval > published
+                # ready_for_approval > draft
                 # published > draft
                 # published > archived
                 # archived > draft
                 if not current_workflow_status == workflow_status:
                     if current_workflow_status == 'draft' and workflow_status != 'draft':
-                        workflow_status = 'needs_review'
-                    elif current_workflow_status == 'needs_review' and workflow_status != 'published':
+                        workflow_status = 'ready_for_approval'
+                    elif current_workflow_status == 'ready_for_approval' and workflow_status != 'published':
                         workflow_status = 'draft'
                     elif current_workflow_status == 'published' and workflow_status != 'archived':
                         workflow_status = 'draft'
