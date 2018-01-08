@@ -1,0 +1,13 @@
+{% ckan_extends %}
+
+{% block primary_content_inner %}
+  {{ super() }}
+
+  {% if c.controller == 'organization' %}
+    {% if (c.action == 'new'
+        or (c.action == 'edit' and h.is_top_level_organization(organization.id) == False))
+        and h.is_sysadmin() == False %}
+      {% resource 'ckanext-workflow/workflow.js' %}
+    {% endif %}
+  {% endif %}
+{% endblock %}
