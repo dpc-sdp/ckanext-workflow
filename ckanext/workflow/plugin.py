@@ -165,8 +165,7 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
         user = toolkit.c.userobj
         if authz.is_sysadmin(user.name):
             return True
-        else:
-            print('\n\n\n***** Youre NO sysadmin! get outta here!')
+
         return False
 
     def is_top_level_organization(self, id):
