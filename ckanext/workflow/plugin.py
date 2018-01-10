@@ -128,6 +128,9 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def after_update(self, context, pkg_dict):
         return pkg_dict
 
+    def after_delete(self, context, pkg_dict):
+        return pkg_dict
+
     def after_show(self, context, pkg_dict):
         return pkg_dict
 
