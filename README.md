@@ -30,13 +30,12 @@ Refer to [Extending guide](http://docs.ckan.org/en/latest/extensions/tutorial.ht
 
         ckan.workflow.json_config = /etc/ckan/workflow.settings.json
 
-6. Restart CKAN. For example if you've deployed CKAN with Apache on Ubuntu:
+6. Add `datavic_hierarchy_form` to `ckan.plugins` setting in ``development.ini`` and ``production.ini`` files, e.g.
+
+        ckan.plugins = [...] datavic_hierarchy_form
+
+7. Remove the `hierarchy_form` from the `ckan.plugins` setting in ``development.ini`` and ``production.ini`` files, e.g.
+
+8. Restart CKAN. For example if you've deployed CKAN with Apache on Ubuntu:
 
          sudo service apache2 reload
-
-## Config Settings
-
-There is one new settings required in your development.ini and production.ini config files. ``ckan.workflow.json_config`` is the location of the json file containing workflow settings for use in the ckanext-workflow extension.
-```
-ckan.workflow.json_config = /etc/ckan/datadump_fields.json
-```
