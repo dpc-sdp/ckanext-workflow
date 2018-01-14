@@ -111,7 +111,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
             # Assign the adjusted workflow_status back to the entity
             entity.extras['workflow_status'] = workflow_status
 
-        if entity.extras['workflow_status'] == 'published':
+        if 'workflow_status' in entity.extras and entity.extras['workflow_status'] == 'published':
             # Super Admins can publish datasets
             # The only other user that can publish datasets are admins of the organization
             if authz.is_sysadmin(user.name) or role == "admin":
