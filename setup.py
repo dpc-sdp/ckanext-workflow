@@ -81,6 +81,7 @@ setup(
     entry_points='''
         [ckan.plugins]
         workflow=ckanext.workflow.plugin:WorkflowPlugin
+        datavic_hierarchy_form=ckanext.workflow.plugin:DataVicHierarchyForm
 
         [babel.extractors]
         ckan = ckan.lib.extract:extract_ckan

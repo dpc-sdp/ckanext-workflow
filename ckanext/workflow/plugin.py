@@ -9,12 +9,38 @@ import ckan.logic as logic
 from ckan.common import config
 from ckanext.workflow import helpers
 from ckanext.workflow.logic import actions
+from ckan.lib.plugins import DefaultOrganizationForm
+
+#from ckanext.hierarchy import helpers as heirarchy_helpers
 
 log1 = logging.getLogger(__name__)
 
+def organization_create(context, data_dict=None):
+    user = toolkit.c.userobj
+    # Sysadmin can do anything
+    if authz.is_sysadmin(user.name):
+        return {'success': True}
+
+    if not authz.auth_is_anon_user(context):
+        orgs = helpers.get_user_organizations(user.name)
+        for org in orgs:
+            role = helpers.role_in_org(org.id, user.name)
+            if role == 'admin':
+                return {'success': True}
+
+    return {'success': False, 'msg': 'Only user level admin or above can create an organisation.'}
+
+
 class WorkflowPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IPackageController)
+    plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.IActions)
+
+    # IAuthFunctions
+    def get_auth_functions(self):
+        return {
+            'organization_create': organization_create,
+        }
 
     # IActions
     def get_actions(self):
@@ -40,7 +66,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         # Dataset is Private until workflow_status becomes "published"
         entity.private = True
 
-        if entity.extras['workflow_status'] == 'published':
+        if 'workflow_status' in entity.extras and entity.extras['workflow_status'] == 'published':
             # Super Admins can publish datasets
             # The only other user that can publish datasets are admins of the organization
             if authz.is_sysadmin(user.name) or role == "admin":
@@ -82,6 +108,9 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def after_update(self, context, pkg_dict):
         return pkg_dict
 
+    def after_delete(self, context, pkg_dict):
+        return pkg_dict
+
     def after_show(self, context, pkg_dict):
         return pkg_dict
 
@@ -107,3 +136,55 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         if helpers.is_private_site_and_user_not_logged_in():
             toolkit.redirect_to('user_login')
         return pkg_dict
+
+
+class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
+
+    plugins.implements(plugins.ITemplateHelpers)
+    plugins.implements(plugins.IConfigurer)
+    plugins.implements(plugins.IGroupForm, inherit=True)
+
+    def is_sysadmin(self):
+        user = toolkit.c.userobj
+        if authz.is_sysadmin(user.name):
+            return True
+
+        return False
+
+    def is_top_level_organization(self, id):
+        group = model.Group.get(id)
+        if group:
+            parent = group.get_parent_group_hierarchy('organization')
+            # This reads a bit funny - but we're checking if the organization has a parent or not
+            if not parent:
+                return True
+        return False
+
+    ## IConfigurer interface ##
+
+    def update_config(self, config):
+        ''' Setup the (fanstatic) resource library, public and template directory '''
+        plugins.toolkit.add_template_directory(config, 'templates')
+        plugins.toolkit.add_resource('fantastic', 'ckanext-workflow')
+
+    ## ITemplateHelpers interface ##
+
+    def get_helpers(self):
+        return {
+            'is_sysadmin': self.is_sysadmin,
+            'is_top_level_organization': self.is_top_level_organization,
+        }
+
+    def group_types(self):
+        return ('organization',)
+
+    def group_controller(self):
+        return 'organization'
+
+    def setup_template_variables(self, context, data_dict):
+        from pylons import tmpl_context as c
+
+        #  DataVic - we filter these in context of logged in user
+        user = toolkit.c.userobj
+
+        c.allowable_parent_groups = user.get_groups('organization', 'admin')

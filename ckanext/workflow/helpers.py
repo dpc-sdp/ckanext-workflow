@@ -51,6 +51,11 @@ def get_available_workflow_statuses(current_workflow_status, owner_org, user):
     role = role_in_org(owner_org, user)
 
     workflow_options = get_workflow_status_options(settings['workflows'], current_workflow_status)
+
+    # SysAdmin users may not have a role in the organisation, so we don't need to filter their workflow status options
+    if authz.is_sysadmin(user):
+        return list(workflow_options)
+
     user_workflow_options = get_workflow_status_options_for_role(settings['roles'], role)
 
     return list(set(workflow_options).intersection(user_workflow_options))
