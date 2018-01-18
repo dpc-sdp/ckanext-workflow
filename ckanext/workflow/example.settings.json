@@ -1,7 +1,7 @@
 {
   "workflows": {
-    "draft": ["draft", "needs_review"],
-    "needs_review": ["draft", "needs_review", "published"],
+    "draft": ["draft", "ready_for_approval"],
+    "ready_for_approval": ["draft", "ready_for_approval", "published"],
     "published": ["draft", "published", "archived"],
     "archived": ["draft", "archived"]
   },
@@ -12,11 +12,11 @@
     },
     "editor": {
       "default_workflow_status": "draft",
-      "workflow_status_options": ["draft", "needs_review", "archived"]
+      "workflow_status_options": ["draft", "ready_for_approval", "archived"]
     },
     "admin": {
       "default_workflow_status": "draft",
-      "workflow_status_options": ["draft", "needs_review", "published", "archived"]
+      "workflow_status_options": ["draft", "ready_for_approval", "published", "archived"]
     }
   }
 }

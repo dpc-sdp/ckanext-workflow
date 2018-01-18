@@ -1,3 +1,4 @@
+import ckan
 import ckan.authz as authz
 import ckan.model as model
 import ckan.plugins as plugins
@@ -65,57 +66,36 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         # Dataset is Private until workflow_status becomes "published"
         entity.private = True
 
-        # Sysadmin can do whatever they like..
-        if not authz.is_sysadmin(user.name):
-            # Get the existing dataset to compare workflow_status
-            dataset = model.Package.get(entity.id)
-            current_workflow_status = dataset.extras['workflow_status']
-
-            # Validate the workflow_status in context of the user's role
-            workflow_status = entity.extras['workflow_status']
-
-            # TODO: Refactor these workflows into the .json settings file if possible.
-            if role == 'editor':
-                # editor can do the following:
-                # draft > needs_review
-                # needs_review > draft
-                # published > draft
-                # published > archived
-                # archived > draft
-                if current_workflow_status == 'published' and workflow_status != 'archived':
-                    workflow_status = 'draft'
-                elif current_workflow_status == 'draft' and workflow_status != 'draft':
-                    workflow_status = 'needs_review'
-                elif current_workflow_status == 'needs_review' and workflow_status != 'needs_review':
-                    workflow_status = 'draft'
-                elif current_workflow_status == 'archived' and workflow_status != 'draft':
-                    workflow_status = 'draft'
-            elif role == 'admin':
-                # admin can do the following:
-                # draft > needs_review
-                # needs_review > published
-                # needs_review > draft
-                # published > draft
-                # published > archived
-                # archived > draft
-                if not current_workflow_status == workflow_status:
-                    if current_workflow_status == 'draft' and workflow_status != 'draft':
-                        workflow_status = 'needs_review'
-                    elif current_workflow_status == 'needs_review' and workflow_status != 'published':
-                        workflow_status = 'draft'
-                    elif current_workflow_status == 'published' and workflow_status != 'archived':
-                        workflow_status = 'draft'
-                    elif current_workflow_status == 'archived' and workflow_status != 'draft':
-                        workflow_status = 'draft'
-
-            # Assign the adjusted workflow_status back to the entity
-            entity.extras['workflow_status'] = workflow_status
-
         if 'workflow_status' in entity.extras and entity.extras['workflow_status'] == 'published':
             # Super Admins can publish datasets
             # The only other user that can publish datasets are admins of the organization
             if authz.is_sysadmin(user.name) or role == "admin":
                 entity.private = False
+
+        # DATAVIC-55    Dataset approval reminders
+        to_revision = entity.latest_related_revision
+        # TODO: make sure there is a previous revision
+        from_revision = entity.all_related_revisions[1][0]
+
+        diff = entity.diff(to_revision, from_revision)
+
+        if 'PackageExtra-workflow_status-value' in diff:
+            change = diff['PackageExtra-workflow_status-value'].split('\n')
+
+            # If workflow_status changes from draft to ready_for_approval..
+            if 'draft' in change[0] and 'ready_for_approval' in change[1]:
+                helpers.notify_admin_users(
+                    entity.owner_org,
+                    user.name,
+                    entity.name
+                )
+            # Else, if workflow_status changes from ready_for_approval back to draft..
+            elif 'ready_for_approval' in change[0] and 'draft' in change[1]:
+                helpers.notify_creator(
+                    entity.name,
+                    entity.creator_user_id,
+                    entity.extras.get('workflow_status_notes', None)
+                )
 
         return entity
 
