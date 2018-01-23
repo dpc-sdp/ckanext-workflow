@@ -368,19 +368,18 @@ def notify_admin_users(owner_org, user_name, package_name):
 
 
 def notify_creator(package_name, creator_user_id, notes=None):
-    user = logic.action.get.user_show({'model': model}, {'id': creator_user_id})
-
+    user = model.User.get(creator_user_id)
     if user:
         msg = load_notification_template('/templates/email/notification-creator.txt')
 
         send_notification_email(
-            user['email'],
+            user.email,
             'Dataset workflow changed to Draft',
             mail_merge(
                 msg,
                 {
-                    'name': user['name'],
-                    'email': user['email'],
+                    'name': user.name,
+                    'email': user.email,
                     'url': get_package_edit_url(package_name),
                     'notes': notes
                 }))
