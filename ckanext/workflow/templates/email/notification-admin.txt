@@ -1,6 +1,6 @@
 Hi there,
 
-A dataset belonging to the `[[ORGANIZATION]]`` organisation has been set to Ready for Approval by the following user:
+A dataset belonging to the `[[ORGANIZATION]]` organisation has been set to Ready for Approval by the following user:
 
 [[USER]]
 
