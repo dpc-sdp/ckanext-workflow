@@ -30,6 +30,28 @@ def organization_create(context, data_dict=None):
 
     return {'success': False, 'msg': 'Only user level admin or above can create an organisation.'}
 
+def organization_update(context, data_dict=None):
+    user = toolkit.c.userobj
+    # Sysadmin can do anything
+    if authz.is_sysadmin(user.name):
+        return {'success': True}
+
+    if not authz.auth_is_anon_user(context):
+
+        if data_dict is not None and 'id' in data_dict:
+            organization_id = data_dict['id']
+        elif 'group' in context:
+            organization_id = context['group'].id
+        else:
+            log1.debug('Scenario not accounted for in ckanext-workflow > plugin.py')
+
+        if organization_id:
+            role = helpers.role_in_org(organization_id, user.name)
+            if role == 'admin':
+                return {'success': True}
+
+    return {'success': False, 'msg': 'Only user level admin or above can update an organisation.'}
+
 
 class WorkflowPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IPackageController)
@@ -40,6 +62,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def get_auth_functions(self):
         return {
             'organization_create': organization_create,
+            'organization_update': organization_update,
         }
 
     # IActions
