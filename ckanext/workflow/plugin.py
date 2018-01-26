@@ -15,6 +15,20 @@ from ckan.lib.plugins import DefaultOrganizationForm
 
 log1 = logging.getLogger(__name__)
 
+
+def check_user_is_admin(organization_id):
+    user = toolkit.c.userobj
+    # Sysadmin can do anything
+    if authz.is_sysadmin(user.name) or is_user_organization_admin(organization_id, user.name):
+        return True
+
+
+def is_user_organization_admin(organization_id, user_name):
+    role = helpers.role_in_org(organization_id, user_name)
+    if role == 'admin':
+        return True
+
+
 def organization_create(context, data_dict=None):
     user = toolkit.c.userobj
     # Sysadmin can do anything
@@ -57,6 +71,15 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IPackageController)
     plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.IActions)
+    plugins.implements(plugins.ITemplateHelpers)
+
+
+    ## ITemplateHelpers interface ##
+
+    def get_helpers(self):
+        return {
+            'check_user_is_admin': check_user_is_admin,
+        }
 
     # IAuthFunctions
     def get_auth_functions(self):
