@@ -62,7 +62,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def get_auth_functions(self):
         return {
             'organization_create': organization_create,
-            'organization_update': organization_update,
+            # 'organization_update': organization_update,
         }
 
     # IActions
@@ -210,4 +210,16 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
         #  DataVic - we filter these in context of logged in user
         user = toolkit.c.userobj
 
-        c.allowable_parent_groups = user.get_groups('organization', 'admin')
+        if authz.is_sysadmin(user.name):
+            c.allowable_parent_groups = model.Group.all(
+                group_type='organization')
+        else:
+            group_id = data_dict.get('id')
+            if group_id:
+                group = model.Group.get(group_id)
+                c.allowable_parent_groups = \
+                    group.groups_allowed_to_be_its_parent(type='organization')
+            else:
+                context = {'user': toolkit.c.user}
+                data_dict = {'permission': None}
+                c.allowable_parent_groups = toolkit.get_action('organization_list_for_user')(context, data_dict)
