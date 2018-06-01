@@ -86,14 +86,14 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         user = toolkit.c.userobj
         role = helpers.role_in_org(entity.owner_org, user.name)
 
-        # Dataset is Private until workflow_status becomes "published"
-        entity.private = True
-
         if 'workflow_status' in entity.extras and entity.extras['workflow_status'] == 'published':
             # Super Admins can publish datasets
             # The only other user that can publish datasets are admins of the organization
-            if authz.is_sysadmin(user.name) or role == "admin":
-                entity.private = False
+            if not authz.is_sysadmin(user.name) and not role == "admin":
+                entity.private = True
+        else:
+            # Dataset is Private until workflow_status becomes "published"
+            entity.private = True
 
         # DATAVIC-55    Dataset approval reminders
         to_revision = entity.latest_related_revision
