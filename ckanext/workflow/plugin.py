@@ -114,10 +114,15 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                 )
             # Else, if workflow_status changes from ready_for_approval back to draft..
             elif 'ready_for_approval' in change[0] and 'draft' in change[1]:
+                if entity.workflow_status_notes:
+                    workflow_status_notes = entity.workflow_status_notes
+                else:
+                    workflow_status_notes = entity.extras.get('workflow_status_notes', None)
+
                 helpers.notify_creator(
                     entity.name,
                     entity.creator_user_id,
-                    entity.extras.get('workflow_status_notes', None)
+                    workflow_status_notes
                 )
 
         return entity
