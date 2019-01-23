@@ -79,7 +79,19 @@ class WorkflowPlugin(plugins.SingletonPlugin):
 
     def create(self, entity):
         # DATAVIC-56: "Each dataset is initially created in a 'Draft' status"
-        entity.extras['workflow_status'] = 'draft'
+        if toolkit.c.controller in ['package', 'dataset']:
+            entity.extras['workflow_status'] = 'draft'
+        else:
+            workflow_status = entity.extras.get('workflow_status', None)
+            organization_visibility = entity.extras.get('organization_visibility', None)
+
+            if not workflow_status or not organization_visibility:
+                if toolkit.asbool(entity.private) is True:
+                    entity.extras['workflow_status'] = 'draft'
+                    entity.extras['organization_visibility'] = 'current'
+                else:
+                    entity.extras['workflow_status'] = 'published'
+                    entity.extras['organization_visibility'] = 'all'
         return entity
 
     def edit(context, entity):
@@ -143,8 +155,8 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_search(self, search_params):
-        log1.debug("*** IPackageController -- before_search ***\n*** controller: %s | action: %s ***", \
-                   toolkit.c.controller, toolkit.c.action)
+        #log1.debug("*** IPackageController -- before_search ***\n*** controller: %s | action: %s ***", \
+        #           toolkit.c.controller, toolkit.c.action)
 
         if helpers.is_private_site_and_user_not_logged_in():
             search_params['abort_search'] = True
@@ -160,7 +172,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_view(self, pkg_dict):
-        log1.debug('*** IPackageController -- before_view -- ID: %s | Name: %s *** | owner_org: %s', pkg_dict['id'], pkg_dict['name'], pkg_dict['owner_org'])
+        #log1.debug('*** IPackageController -- before_view -- ID: %s | Name: %s *** | owner_org: %s', \pkg_dict['id'], pkg_dict['name'], pkg_dict['owner_org'])
         if helpers.is_private_site_and_user_not_logged_in():
             toolkit.redirect_to('user_login')
         return pkg_dict
