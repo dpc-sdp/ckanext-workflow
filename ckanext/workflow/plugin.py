@@ -81,61 +81,60 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         # DATAVIC-56: "Each dataset is initially created in a 'Draft' status"
         if toolkit.c.controller in ['package', 'dataset']:
             entity.extras['workflow_status'] = 'draft'
+        # Harvester created datasets
         else:
-            workflow_status = entity.extras.get('workflow_status', None)
-            organization_visibility = entity.extras.get('organization_visibility', None)
+            self.set_harvested_dataset_workflow_properties(entity)
 
-            if not workflow_status or not organization_visibility:
-                if toolkit.asbool(entity.private) is True:
-                    entity.extras['workflow_status'] = 'draft'
-                    entity.extras['organization_visibility'] = 'current'
-                else:
-                    entity.extras['workflow_status'] = 'published'
-                    entity.extras['organization_visibility'] = 'all'
         return entity
 
-    def edit(context, entity):
-        user = toolkit.c.userobj
-        role = helpers.role_in_org(entity.owner_org, user.name)
+    def edit(self, entity):
 
-        if 'workflow_status' in entity.extras and entity.extras['workflow_status'] == 'published':
-            # Super Admins can publish datasets
-            # The only other user that can publish datasets are admins of the organization
-            if not authz.is_sysadmin(user.name) and not role == "admin":
+        # Datasets updated through the UI need to be handled differently that those updated via the Harvester
+        if toolkit.c.controller in ['package', 'dataset']:
+            user = toolkit.c.userobj
+            role = helpers.role_in_org(entity.owner_org, user.name)
+
+            if 'workflow_status' in entity.extras and entity.extras['workflow_status'] == 'published':
+                # Super Admins can publish datasets
+                # The only other user that can publish datasets are admins of the organization
+                if not authz.is_sysadmin(user.name) and not role == "admin":
+                    entity.private = True
+            else:
+                # Dataset is Private until workflow_status becomes "published"
                 entity.private = True
+
+            # DATAVIC-55    Dataset approval reminders
+            to_revision = entity.latest_related_revision
+            # TODO: make sure there is a previous revision
+            from_revision = entity.all_related_revisions[1][0]
+
+            diff = entity.diff(to_revision, from_revision)
+
+            if 'PackageExtra-workflow_status-value' in diff:
+                change = diff['PackageExtra-workflow_status-value'].split('\n')
+
+                # If workflow_status changes from draft to ready_for_approval..
+                if 'draft' in change[0] and 'ready_for_approval' in change[1]:
+                    helpers.notify_admin_users(
+                        entity.owner_org,
+                        user.name,
+                        entity.name
+                    )
+                # Else, if workflow_status changes from ready_for_approval back to draft..
+                elif 'ready_for_approval' in change[0] and 'draft' in change[1]:
+                    if entity.workflow_status_notes:
+                        workflow_status_notes = entity.workflow_status_notes
+                    else:
+                        workflow_status_notes = entity.extras.get('workflow_status_notes', None)
+
+                    helpers.notify_creator(
+                        entity.name,
+                        entity.creator_user_id,
+                        workflow_status_notes
+                    )
+        # Handle datasets updated through the Harvester differently
         else:
-            # Dataset is Private until workflow_status becomes "published"
-            entity.private = True
-
-        # DATAVIC-55    Dataset approval reminders
-        to_revision = entity.latest_related_revision
-        # TODO: make sure there is a previous revision
-        from_revision = entity.all_related_revisions[1][0]
-
-        diff = entity.diff(to_revision, from_revision)
-
-        if 'PackageExtra-workflow_status-value' in diff:
-            change = diff['PackageExtra-workflow_status-value'].split('\n')
-
-            # If workflow_status changes from draft to ready_for_approval..
-            if 'draft' in change[0] and 'ready_for_approval' in change[1]:
-                helpers.notify_admin_users(
-                    entity.owner_org,
-                    user.name,
-                    entity.name
-                )
-            # Else, if workflow_status changes from ready_for_approval back to draft..
-            elif 'ready_for_approval' in change[0] and 'draft' in change[1]:
-                if entity.workflow_status_notes:
-                    workflow_status_notes = entity.workflow_status_notes
-                else:
-                    workflow_status_notes = entity.extras.get('workflow_status_notes', None)
-
-                helpers.notify_creator(
-                    entity.name,
-                    entity.creator_user_id,
-                    workflow_status_notes
-                )
+            self.set_harvested_dataset_workflow_properties(entity)
 
         return entity
 
@@ -155,9 +154,6 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_search(self, search_params):
-        #log1.debug("*** IPackageController -- before_search ***\n*** controller: %s | action: %s ***", \
-        #           toolkit.c.controller, toolkit.c.action)
-
         if helpers.is_private_site_and_user_not_logged_in():
             search_params['abort_search'] = True
         else:
@@ -172,10 +168,25 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_view(self, pkg_dict):
-        #log1.debug('*** IPackageController -- before_view -- ID: %s | Name: %s *** | owner_org: %s', \pkg_dict['id'], pkg_dict['name'], pkg_dict['owner_org'])
         if helpers.is_private_site_and_user_not_logged_in():
             toolkit.redirect_to('user_login')
         return pkg_dict
+
+    def set_harvested_dataset_workflow_properties(self, entity):
+        workflow_status = entity.extras.get('workflow_status', None)
+        organization_visibility = entity.extras.get('organization_visibility', None)
+
+        if not workflow_status:
+            if toolkit.asbool(entity.private) is True:
+                entity.extras['workflow_status'] = 'draft'
+            else:
+                entity.extras['workflow_status'] = 'published'
+
+        if not organization_visibility:
+            if toolkit.asbool(entity.private) is True:
+                entity.extras['organization_visibility'] = 'current'
+            else:
+                entity.extras['organization_visibility'] = 'all'
 
 
 class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
