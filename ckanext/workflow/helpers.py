@@ -293,22 +293,21 @@ def load_notification_template(template):
 
 
 def send_notification_email(to, subject, msg):
-    import smtplib
-    from email.mime.text import MIMEText
+    import ckan.lib.mailer as mailer
 
-    me = config.get('smtp.mail_from')
+    # Attempt to send mail.
+    mail_dict = {
+        'recipient_email': to,
+        'recipient_name': to,
+        'subject': subject,
+        'body': msg,
+        'headers': {'reply-to': config.get('smtp.mail_from')}
+    }
 
-    # Create the container (outer) email message.
-    msg = MIMEText(msg, 'plain')
-
-    msg['To'] = to
-    msg['From'] = me
-    msg['Subject'] = subject
-
-    # Send the email via our own SMTP server.
-    s = smtplib.SMTP('localhost')
-    s.sendmail(me, to, msg.as_string())
-    s.quit()
+    try:
+        mailer.mail_recipient(**mail_dict)
+    except (mailer.MailerException, socket.error):
+        log.error(u'Cannot send workflow status notification email to %s.', to, exc_info=1)
 
 
 def get_package_edit_url(package_name):
