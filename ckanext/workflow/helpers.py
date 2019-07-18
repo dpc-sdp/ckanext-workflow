@@ -92,14 +92,27 @@ def is_user_in_child_organization(organization, user_organizations):
 
 
 def is_user_in_family_organization(organization, user_organizations):
+    debug = config.get('debug', False)
     log1.debug("*** CHECKING: FAMILY...")
+    if debug:
+        from pprint import pprint
+        print(">>> Users organisations:")
+        pprint(user_organizations)
     ancestors = organization.get_parent_group_hierarchy('organization')
+    # Check if the user belongs to an ancestor of the dataset owner organisation
     if find_match_in_list(ancestors, user_organizations):
         return True
     else:
-        descendants = organization.get_children_group_hierarchy('organization')
-        if find_match_in_list(descendants, user_organizations):
-            return True
+        # If user does not belong to any ancestors, checked the descendants of the ancestors
+        log1.debug("*** User not found in any Ancestors... Checking in Ancestor Descendants...")
+        if ancestors:
+            for ancestor in ancestors:
+                descendants = ancestor.get_children_group_hierarchy('organization')
+                if debug:
+                    print(">>> List of descendants for ancestor %s:" % ancestor.name)
+                    pprint(descendants)
+                if find_match_in_list(descendants, user_organizations):
+                    return True
     return False
 
 
@@ -114,7 +127,7 @@ def find_match_in_list(list_1, list_2):
 
 
 def get_organization_relationships_for_user(organization, user_organizations):
-    relationships = []
+    relationships = ['all']
 
     # PARENT
     if is_user_in_parent_organization(organization, user_organizations):
