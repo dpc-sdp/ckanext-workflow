@@ -1,13 +1,15 @@
 import ckan.authz as authz
 import ckan.model as model
 import logging
+from ckan.common import config
 from ckanext.workflow import helpers
+from pprint import pprint
 
 log1 = logging.getLogger(__name__)
 
 
 def organization_read_filter_query(organization_id, username):
-    log1.debug('*** PACKAGE_SEARCH | organization_read_filter_query ***')
+    log1.debug('*** PACKAGE_SEARCH | organization_read_filter_query | organization_id: %s ***' % organization_id)
 
     organization = model.Group.get(organization_id)
 
@@ -27,7 +29,7 @@ def organization_read_filter_query(organization_id, username):
         # Of course the user can see any datasets they have created
         rules.append('(owner_org:"{0}" AND creator_user_id:{1})'.format(organization_id, user.id))
         # Admin can see unpublished datasets in organisations they are members of
-        if role == 'admin':
+        if role in ['admin', 'editor']:
             rules.append('(owner_org:"{0}")'.format(organization_id))
         else:
             # The user can see any published datasets in their own organisation
@@ -37,9 +39,15 @@ def organization_read_filter_query(organization_id, username):
         relationships = helpers.get_organization_relationships_for_user(organization, user_organizations)
         if relationships:
             for relationship in relationships:
-                rules.append('(capacity:public owner_org:"{0}" AND organization_visibility:"{1}")'.format(organization_id, relationship))
+                rules.append('(owner_org:"{0}" AND organization_visibility:"{1}" AND workflow_status:"published")'.format(organization_id, relationship))
 
-    return ' ( {0} ) '.format(' OR '.join(rule for rule in rules))
+    rules = ' ( {0} ) '.format(' OR '.join(rule for rule in rules))
+    # DEBUG:
+    if config.get('debug', False):
+        print(">>>>>>>>>>>>>>>>>>>>>>>>> organization_read_filter_query RULES: <<<<<<<<<<<<<<<<<<<<<<<<<<")
+        pprint(rules)
+
+    return rules
 
 
 def package_search_filter_query(username):
@@ -77,11 +85,19 @@ def package_search_filter_query(username):
         # "...within the owning Organisation, discoverability/searchability of *unpublished*
         # data records is limited to the Org ADMIN account holders and the EDITOR account
         # holder who created the data record itself
-        if role == 'admin' or role == 'editor':
+        if role in ['admin', 'editor', 'member']:
+            # ALL
+            # All users who have a role in an organisation should be able to see any dataset that has:
+            # workflow_status = 'published'
+            # organization_visibility = 'all
+            rules.append('(organization_visibility:"all" AND workflow_status:"published")')
+
             if role == 'admin':
                 query = '(owner_org:"{0}" AND organization_visibility:"{1}")'
-            elif role == 'editor':
+            else:
+                # For 'editor' and 'member' users
                 query = '(owner_org:"{0}" AND organization_visibility:"{1}" AND workflow_status:"published")'
+
             # PARENT
             # Dataset Organisation Visibility = Parent -- Get this Organization's Child orgs...
             for child in organization.get_children_groups('organization'):
@@ -94,10 +110,18 @@ def package_search_filter_query(username):
             # Dataset Organisation Visibility = Family -- Get this Organization's Ancestor & Descendent orgs...
             for ancestor in organization.get_parent_group_hierarchy('organization'):
                 rules.append(query.format(ancestor.id, 'family'))
-            for descendent in organization.get_children_group_hierarchy('organization'):
-                rules.append(query.format(descendent.id, 'family'))
+                descendants = ancestor.get_children_group_hierarchy('organization')
+                for descendant in descendants:
+                    rules.append(query.format(descendant.id, 'family'))
+
+            for descendant in organization.get_children_group_hierarchy('organization'):
+                rules.append(query.format(descendant.id, 'family'))
+
+    rules = ' ( {0} ) '.format(' OR '.join(rule for rule in rules))
+
     # DEBUG:
-    print(">>>>>>>>>>>>>>>>>>>>>>>>> RULES: <<<<<<<<<<<<<<<<<<<<<<<<<<")
-    from pprint import pprint
-    pprint(' OR '.join(rule for rule in rules))
-    return ' ( {0} ) '.format(' OR '.join(rule for rule in rules))
+    if config.get('debug', False):
+        print(">>>>>>>>>>>>>>>>>>>>>>>>> package_search_filter_query RULES: <<<<<<<<<<<<<<<<<<<<<<<<<<")
+        pprint(rules)
+
+    return rules
