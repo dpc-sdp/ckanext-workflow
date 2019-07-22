@@ -6,6 +6,7 @@ import ckan.model as model
 import ckan.plugins.toolkit as toolkit
 import json
 import logging
+
 from ckan.common import config
 
 log1 = logging.getLogger(__name__)
@@ -396,3 +397,30 @@ def notify_creator(package_name, creator_user_id, notes=None):
                     'notes': notes
                 }))
     return
+
+
+def user_can_view_private_dataset(package, user_name):
+    """
+    Datasets that are marked Private ("Public Release" = No, in DataVic terminology) need to be assessed
+    based on Organisation Visibility and Workflow Status in order to be shown to users.
+
+    If a dataset has organization_visibility: 'all' and workflow_status: 'published' - any logged in user can view it
+
+    Otherwise the helper methods above are used to determine if the user can view the dataset based on their group relationships in relation
+    to the dataset owner org and the org visibility setting.
+    """
+    organization_visibility = package.extras.get('organization_visibility')
+    workflow_status = package.extras.get('workflow_status')
+    # We only need to consider additional rules if the dataset is in the published workflow status other the default CKAN rules apply
+    if workflow_status == 'published':
+    # Anyone logged in user can see a dataset with workflow_status: 'published' and organization_visibility: 'all'
+        if organization_visibility == 'all':
+            return {'success': True}
+        elif organization_visibility in ['child', 'parent', 'family']:
+            organization = model.Group.get(package.owner_org)
+            user_organizations = get_user_organizations(user_name)
+            relationships = get_organization_relationships_for_user(organization, user_organizations)
+            if relationships and organization_visibility in relationships:
+                return True
+    # @Todo: Question: Can editors see other editors drafts? or ready for approval datasets?
+    return False

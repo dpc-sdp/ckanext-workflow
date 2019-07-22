@@ -4,16 +4,15 @@ import ckan.model as model
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 import logging
-import ckan.logic as logic
 
 from ckan.common import config
-from ckanext.workflow import helpers
 from ckanext.workflow.logic import actions
+from ckanext.workflow.logic import auth
+from ckanext.workflow import helpers
 from ckan.lib.plugins import DefaultOrganizationForm
 
-#from ckanext.hierarchy import helpers as heirarchy_helpers
-
 log1 = logging.getLogger(__name__)
+
 
 def organization_create(context, data_dict=None):
     user = toolkit.c.userobj
@@ -29,6 +28,7 @@ def organization_create(context, data_dict=None):
                 return {'success': True}
 
     return {'success': False, 'msg': 'Only user level admin or above can create an organisation.'}
+
 
 def organization_update(context, data_dict=None):
     user = toolkit.c.userobj
@@ -63,6 +63,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         return {
             'organization_create': organization_create,
             # 'organization_update': organization_update,
+            'package_show': auth.iar_package_show,
         }
 
     # IActions
