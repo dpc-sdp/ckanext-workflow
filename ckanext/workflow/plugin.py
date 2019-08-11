@@ -95,7 +95,12 @@ class WorkflowPlugin(plugins.SingletonPlugin):
             user = toolkit.c.userobj
             role = helpers.role_in_org(entity.owner_org, user.name)
 
-            if 'workflow_status' in entity.extras and entity.extras['workflow_status'] == 'published':
+            workflow_status = entity.extras.get('workflow_status', None)
+            organization_visibility = entity.extras.get('organization_visibility', None)
+
+            # DATAVIC-108: A dataset can only be set for Public Release (`private` = False) if workflow status and
+            # organization visibility are published and all, respectively
+            if workflow_status == 'published' and organization_visibility == 'all':
                 # Super Admins can publish datasets
                 # The only other user that can publish datasets are admins of the organization
                 if not authz.is_sysadmin(user.name) and not role == "admin":
