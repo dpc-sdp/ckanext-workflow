@@ -1,0 +1,22 @@
+{
+  "workflows": {
+    "draft": ["draft", "ready_for_approval"],
+    "ready_for_approval": ["draft", "ready_for_approval", "published"],
+    "published": ["draft", "published", "archived"],
+    "archived": ["draft", "archived"]
+  },
+  "roles": {
+    "member": {
+      "default_workflow_status": "draft",
+      "workflow_status_options": []
+    },
+    "editor": {
+      "default_workflow_status": "draft",
+      "workflow_status_options": ["draft", "ready_for_approval", "archived"]
+    },
+    "admin": {
+      "default_workflow_status": "draft",
+      "workflow_status_options": ["draft", "ready_for_approval", "published", "archived"]
+    }
+  }
+}
