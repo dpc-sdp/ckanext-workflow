@@ -54,7 +54,7 @@ def organization_update(context, data_dict=None):
 
 
 class WorkflowPlugin(plugins.SingletonPlugin):
-    plugins.implements(plugins.IPackageController)
+    plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.IActions)
 
@@ -74,13 +74,10 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         }
 
     # IPackageController
-    def read(self, entity):
-        # log1.debug('*** IPackageController -- read -- ID: %s | Name: %s ***', entity.id, entity.name)
-        return entity
 
     def create(self, entity):
         # DATAVIC-56: "Each dataset is initially created in a 'Draft' status"
-        if toolkit.c.controller in ['package', 'dataset']:
+        if toolkit.g.controller in ['package', 'dataset']:
             entity.extras['workflow_status'] = 'draft'
         # Harvester created datasets
         else:
@@ -91,14 +88,15 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def edit(self, entity):
 
         # Datasets updated through the UI need to be handled differently that those updated via the Harvester
-        if toolkit.c.controller in ['package', 'dataset']:
+        if toolkit.g.controller in ['package', 'dataset']:
             user = toolkit.c.userobj
             role = helpers.role_in_org(entity.owner_org, user.name)
 
             workflow_status = entity.extras.get('workflow_status', None)
             organization_visibility = entity.extras.get('organization_visibility', None)
 
-            # DATAVIC-108: A dataset can only be set for Public Release (`private` = False) if workflow status and
+            # DATAVIC-108: A dataset can only be set for Public Release (`private` = False)
+            # if workflow status and
             # organization visibility are published and all, respectively
             if workflow_status == 'published' and organization_visibility == 'all':
                 # Super Admins can publish datasets
@@ -109,25 +107,23 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                 # Dataset is Private until workflow_status becomes "published"
                 entity.private = True
 
-            # DATAVIC-55    Dataset approval reminders
-            to_revision = entity.latest_related_revision
-            # TODO: make sure there is a previous revision
-            from_revision = entity.all_related_revisions[1][0]
+            # BEGIN: DATAVIC-251 CKAN 2.9 upgrade
+            # BEGIN: DATAVIC-251 CKAN 2.9 upgrade
+            from pprint import pprint
 
-            diff = entity.diff(to_revision, from_revision)
+            # Check if there's a request parameter for `current_workflow_status`
+            current_workflow_status = toolkit.request.form.get('current_workflow_status', None)
 
-            if 'PackageExtra-workflow_status-value' in diff:
-                change = diff['PackageExtra-workflow_status-value'].split('\n')
-
+            if workflow_status != current_workflow_status:
                 # If workflow_status changes from draft to ready_for_approval..
-                if 'draft' in change[0] and 'ready_for_approval' in change[1]:
+                if current_workflow_status == 'draft' and workflow_status == 'ready_for_approval':
                     helpers.notify_admin_users(
                         entity.owner_org,
                         user.name,
                         entity.name
                     )
                 # Else, if workflow_status changes from ready_for_approval back to draft..
-                elif 'ready_for_approval' in change[0] and 'draft' in change[1]:
+                elif current_workflow_status == 'ready_for_approval' and workflow_status == 'draft':
                     if entity.workflow_status_notes:
                         workflow_status_notes = entity.workflow_status_notes
                     else:
@@ -138,26 +134,54 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                         entity.creator_user_id,
                         workflow_status_notes
                     )
+            # END: DATAVIC-251 CKAN 2.9 upgrade
+            # END: DATAVIC-251 CKAN 2.9 upgrade
+
+            ## BEGIN: 2.9 UPGRADE COMMENTED OUT HERE
+            ## BEGIN: 2.9 UPGRADE COMMENTED OUT HERE
+            ## BEGIN: 2.9 UPGRADE COMMENTED OUT HERE
+            #
+            # CKAN 2.9 removed the revisions table for datasets (packages) and now uses the activity stream to record updates
+            #   BUT... activities are NOT recorded for private datasets
+            #   this affects the code where the workflow plugin checks for the change in workflow status in order to notify the admins
+            #
+            # DATAVIC-55    Dataset approval reminders
+            # to_revision = entity.latest_related_revision
+            # # TODO: make sure there is a previous revision
+            # from_revision = entity.all_related_revisions[1][0]
+            #
+            # diff = entity.diff(to_revision, from_revision)
+            #
+            # if 'PackageExtra-workflow_status-value' in diff:
+            #     change = diff['PackageExtra-workflow_status-value'].split('\n')
+            #
+            #     # If workflow_status changes from draft to ready_for_approval..
+            #     if 'draft' in change[0] and 'ready_for_approval' in change[1]:
+            #         helpers.notify_admin_users(
+            #             entity.owner_org,
+            #             user.name,
+            #             entity.name
+            #         )
+            #     # Else, if workflow_status changes from ready_for_approval back to draft..
+            #     elif 'ready_for_approval' in change[0] and 'draft' in change[1]:
+            #         if entity.workflow_status_notes:
+            #             workflow_status_notes = entity.workflow_status_notes
+            #         else:
+            #             workflow_status_notes = entity.extras.get('workflow_status_notes', None)
+            #
+            #         helpers.notify_creator(
+            #             entity.name,
+            #             entity.creator_user_id,
+            #             workflow_status_notes
+            #         )
+            ## END: 2.9 UPGRADE COMMENTED OUT HERE
+            ## END: 2.9 UPGRADE COMMENTED OUT HERE
+            ## END: 2.9 UPGRADE COMMENTED OUT HERE
         # Handle datasets updated through the Harvester differently
         else:
             self.set_harvested_dataset_workflow_properties(entity)
 
         return entity
-
-    def delete(self, entity):
-        return entity
-
-    def after_create(self, context, pkg_dict):
-        return pkg_dict
-
-    def after_update(self, context, pkg_dict):
-        return pkg_dict
-
-    def after_delete(self, context, pkg_dict):
-        return pkg_dict
-
-    def after_show(self, context, pkg_dict):
-        return pkg_dict
 
     def before_search(self, search_params):
         if helpers.is_private_site_and_user_not_logged_in():
@@ -166,12 +190,6 @@ class WorkflowPlugin(plugins.SingletonPlugin):
             search_params['include_private'] = True
 
         return search_params
-
-    def after_search(self, search_results, search_params):
-        return search_results
-
-    def before_index(self, pkg_dict):
-        return pkg_dict
 
     def before_view(self, pkg_dict):
         if helpers.is_private_site_and_user_not_logged_in():

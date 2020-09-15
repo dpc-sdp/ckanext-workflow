@@ -1,6 +1,6 @@
 import ckan.plugins.toolkit as toolkit
 
-from ckan.lib.base import _
+from ckan.common import _
 from ckan.logic.auth import get_package_object
 from ckan.lib.plugins import get_permission_labels
 from ckanext.workflow import helpers
