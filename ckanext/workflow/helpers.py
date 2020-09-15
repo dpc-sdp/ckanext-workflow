@@ -23,7 +23,7 @@ def load_workflow_settings():
     '''
     Load some config info from a json file
     '''
-    path = config.get('ckan.workflow.json_config', '/usr/lib/ckan/default/src/ckanext-workflow/ckanext/workflow/example.settings.json')
+    path = config.get('ckan.workflow.json_config', '/app/ckan/default/workflow.settings.json')
     with open(path) as json_data:
         d = json.load(json_data)
         return d
