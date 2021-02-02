@@ -1,6 +1,6 @@
 {% ckan_extends %}
 
-{% set workflow = h.is_workflow_enabled(organization.id) %}
+{% set workflow = h.is_workflow_enabled(group_dict.id) %}
 {% block primary_content_inner %} 
  {{ super() }}
 

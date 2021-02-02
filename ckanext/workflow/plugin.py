@@ -1,4 +1,3 @@
-import ckan
 import ckan.authz as authz
 import ckan.model as model
 import ckan.plugins as plugins
@@ -187,7 +186,7 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
     def update_config(self, config):
         ''' Setup the (fanstatic) resource library, public and template directory '''
         plugins.toolkit.add_template_directory(config, 'templates')
-        plugins.toolkit.add_resource('fantastic', 'ckanext-workflow')
+        plugins.toolkit.add_resource('webassets', 'ckanext-workflow')
 
     ## ITemplateHelpers interface ##
 
@@ -195,7 +194,7 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
         return {
             'is_sysadmin': helpers.is_sysadmin,
             'is_top_level_organization': helpers.is_top_level_organization,
-            'is_workflow_enabled_as': helpers.is_workflow_enabled
+            'is_workflow_enabled': helpers.is_workflow_enabled
         }
 
     def group_types(self):

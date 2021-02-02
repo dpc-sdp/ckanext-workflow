@@ -426,7 +426,7 @@ def user_can_view_private_dataset(package, user_name):
     return False
 
 def is_sysadmin():
-        user = toolkit.c.userobj
+        user = toolkit.g.userobj
         if authz.is_sysadmin(user.name):
             return True
 
@@ -442,8 +442,8 @@ def is_top_level_organization(id):
     return False
 
 
-def is_workflow_enabled(org_id):
-    blueprint, endpoint =  toolkit.get_endpont()
+def is_workflow_enabled(id):
+    blueprint, endpoint =  toolkit.get_endpoint()
     if blueprint == 'organization':
         if endpoint == 'new' or (endpoint =='edit' and is_top_level_organization(id) == False and is_sysadmin() == False):
             return True
