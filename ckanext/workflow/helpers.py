@@ -442,9 +442,11 @@ def is_top_level_organization(id):
     return False
 
 
-# def is_workflow_enabled(org_id):
-#     blueprint, endpoint =  toolkit.get_endpont()
-#     if blueprint == 'organization':
-#         if endpoint == 'new' or (endpoint =='edit' and h.is_top_level_organization(id) and is_sysadmin()):
+def is_workflow_enabled(org_id):
+    blueprint, endpoint =  toolkit.get_endpont()
+    if blueprint == 'organization':
+        if endpoint == 'new' or (endpoint =='edit' and is_top_level_organization(id) == False and is_sysadmin() == False):
+            return True
+    return False
 
  

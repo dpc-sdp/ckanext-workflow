@@ -195,6 +195,7 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
         return {
             'is_sysadmin': helpers.is_sysadmin,
             'is_top_level_organization': helpers.is_top_level_organization,
+            'is_workflow_enabled_as': helpers.is_workflow_enabled
         }
 
     def group_types(self):

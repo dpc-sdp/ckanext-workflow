@@ -1,0 +1,4 @@
+workflow:
+  content:
+   - workflow.js
+  filters: rjsmin
