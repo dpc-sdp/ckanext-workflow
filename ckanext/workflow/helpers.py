@@ -424,3 +424,27 @@ def user_can_view_private_dataset(package, user_name):
                 return True
     # @Todo: Question: Can editors see other editors drafts? or ready for approval datasets?
     return False
+
+def is_sysadmin():
+        user = toolkit.c.userobj
+        if authz.is_sysadmin(user.name):
+            return True
+
+        return False
+
+def is_top_level_organization(id):
+    group = model.Group.get(id)
+    if group:
+        parent = group.get_parent_group_hierarchy('organization')
+        # This reads a bit funny - but we're checking if the organization has a parent or not
+        if not parent:
+            return True
+    return False
+
+
+# def is_workflow_enabled(org_id):
+#     blueprint, endpoint =  toolkit.get_endpont()
+#     if blueprint == 'organization':
+#         if endpoint == 'new' or (endpoint =='edit' and h.is_top_level_organization(id) and is_sysadmin()):
+
+ 

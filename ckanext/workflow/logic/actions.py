@@ -11,7 +11,6 @@ import json
 from ckanext.workflow import helpers
 from ckanext.workflow.logic import queries
 from pprint import pprint
-from paste.deploy.converters import asbool
 
 _validate = ckan.lib.navl.dictization_functions.validate
 _check_access = logic.check_access
@@ -188,7 +187,7 @@ def datavic_package_search(context, data_dict):
 
     results = []
     if not abort:
-        if asbool(data_dict.get('use_default_schema')):
+        if toolkit.asbool(data_dict.get('use_default_schema')):
             data_source = 'data_dict'
         else:
             data_source = 'validated_data_dict'
@@ -201,8 +200,8 @@ def datavic_package_search(context, data_dict):
         fq = data_dict.get('fq', '')
 
         # Remove before these hit solr FIXME: whitelist instead
-        include_private = asbool(data_dict.pop('include_private', False))
-        include_drafts = asbool(data_dict.pop('include_drafts', False))
+        include_private = toolkit.asbool(data_dict.pop('include_private', False))
+        include_drafts = toolkit.asbool(data_dict.pop('include_drafts', False))
 
         # DATAVIC-56: Use the controller and action to set search params
         controller_action = '{0}.{1}'.format(toolkit.c.controller, toolkit.c.action)
@@ -372,3 +371,42 @@ def datavic_package_search(context, data_dict):
             key=lambda facet: facet['display_name'], reverse=True)
 
     return search_results
+
+def organization_create(context, data_dict=None):
+    user = toolkit.c.userobj
+    # Sysadmin can do anything
+    if authz.is_sysadmin(user.name):
+        return {'success': True}
+
+    if not authz.auth_is_anon_user(context):
+        orgs = helpers.get_user_organizations(user.name)
+        for org in orgs:
+            role = helpers.role_in_org(org.id, user.name)
+            if role == 'admin':
+                return {'success': True}
+
+    return {'success': False, 'msg': 'Only user level admin or above can create an organisation.'}
+
+
+def organization_update(context, data_dict=None):
+    user = toolkit.c.userobj
+    # Sysadmin can do anything
+    if authz.is_sysadmin(user.name):
+        return {'success': True}
+
+    if not authz.auth_is_anon_user(context):
+
+        if data_dict is not None and 'id' in data_dict:
+            organization_id = data_dict['id']
+        elif 'group' in context:
+            organization_id = context['group'].id
+        else:
+            log1.debug('Scenario not accounted for in ckanext-workflow > plugin.py')
+
+        if organization_id:
+            role = helpers.role_in_org(organization_id, user.name)
+            if role == 'admin':
+                return {'success': True}
+
+    return {'success': False, 'msg': 'Only user level admin or above can update an organisation.'}
+

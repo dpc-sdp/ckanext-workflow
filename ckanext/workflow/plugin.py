@@ -14,44 +14,6 @@ from ckan.lib.plugins import DefaultOrganizationForm
 log1 = logging.getLogger(__name__)
 
 
-def organization_create(context, data_dict=None):
-    user = toolkit.c.userobj
-    # Sysadmin can do anything
-    if authz.is_sysadmin(user.name):
-        return {'success': True}
-
-    if not authz.auth_is_anon_user(context):
-        orgs = helpers.get_user_organizations(user.name)
-        for org in orgs:
-            role = helpers.role_in_org(org.id, user.name)
-            if role == 'admin':
-                return {'success': True}
-
-    return {'success': False, 'msg': 'Only user level admin or above can create an organisation.'}
-
-
-def organization_update(context, data_dict=None):
-    user = toolkit.c.userobj
-    # Sysadmin can do anything
-    if authz.is_sysadmin(user.name):
-        return {'success': True}
-
-    if not authz.auth_is_anon_user(context):
-
-        if data_dict is not None and 'id' in data_dict:
-            organization_id = data_dict['id']
-        elif 'group' in context:
-            organization_id = context['group'].id
-        else:
-            log1.debug('Scenario not accounted for in ckanext-workflow > plugin.py')
-
-        if organization_id:
-            role = helpers.role_in_org(organization_id, user.name)
-            if role == 'admin':
-                return {'success': True}
-
-    return {'success': False, 'msg': 'Only user level admin or above can update an organisation.'}
-
 
 class WorkflowPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IPackageController, inherit=True)
@@ -61,8 +23,8 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     # IAuthFunctions
     def get_auth_functions(self):
         return {
-            'organization_create': organization_create,
-            # 'organization_update': organization_update,
+            'organization_create': actions.organization_create,
+            # 'organization_update': actions.organization_update,
             'package_show': auth.iar_package_show,
         }
 
@@ -136,6 +98,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                     )
             # END: DATAVIC-251 CKAN 2.9 upgrade
             # END: DATAVIC-251 CKAN 2.9 upgrade
+            # https://github.com/ckan/ckan/issues/5772
 
             ## BEGIN: 2.9 UPGRADE COMMENTED OUT HERE
             ## BEGIN: 2.9 UPGRADE COMMENTED OUT HERE
@@ -219,22 +182,6 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IGroupForm, inherit=True)
 
-    def is_sysadmin(self):
-        user = toolkit.c.userobj
-        if authz.is_sysadmin(user.name):
-            return True
-
-        return False
-
-    def is_top_level_organization(self, id):
-        group = model.Group.get(id)
-        if group:
-            parent = group.get_parent_group_hierarchy('organization')
-            # This reads a bit funny - but we're checking if the organization has a parent or not
-            if not parent:
-                return True
-        return False
-
     ## IConfigurer interface ##
 
     def update_config(self, config):
@@ -246,8 +193,8 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
 
     def get_helpers(self):
         return {
-            'is_sysadmin': self.is_sysadmin,
-            'is_top_level_organization': self.is_top_level_organization,
+            'is_sysadmin': helpers.is_sysadmin,
+            'is_top_level_organization': helpers.is_top_level_organization,
         }
 
     def group_types(self):
@@ -257,21 +204,21 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
         return 'organization'
 
     def setup_template_variables(self, context, data_dict):
-        from pylons import tmpl_context as c
+        #from pylons import tmpl_context as c
 
         #  DataVic - we filter these in context of logged in user
         user = toolkit.c.userobj
 
         if authz.is_sysadmin(user.name):
-            c.allowable_parent_groups = model.Group.all(
+            toolkit.g.allowable_parent_groups = model.Group.all(
                 group_type='organization')
         else:
             group_id = data_dict.get('id')
             if group_id:
                 group = model.Group.get(group_id)
-                c.allowable_parent_groups = \
+                toolkit.g.allowable_parent_groups = \
                     group.groups_allowed_to_be_its_parent(type='organization')
             else:
-                context = {'user': toolkit.c.user}
+                context = {'user': toolkit.g.user}
                 data_dict = {'permission': None}
-                c.allowable_parent_groups = toolkit.get_action('organization_list_for_user')(context, data_dict)
+                toolkit.g.allowable_parent_groups = toolkit.get_action('organization_list_for_user')(context, data_dict)
