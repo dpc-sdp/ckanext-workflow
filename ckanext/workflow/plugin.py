@@ -49,8 +49,9 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def edit(self, entity):
 
         # Datasets updated through the UI need to be handled differently that those updated via the Harvester
+        import pdb; pdb.set_trace()
         if toolkit.g.controller in ['package', 'dataset']:
-            user = toolkit.c.userobj
+            user = toolkit.g.userobj
             role = helpers.role_in_org(entity.owner_org, user.name)
 
             workflow_status = entity.extras.get('workflow_status', None)
