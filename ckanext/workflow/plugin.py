@@ -49,7 +49,6 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def edit(self, entity):
 
         # Datasets updated through the UI need to be handled differently that those updated via the Harvester
-        import pdb; pdb.set_trace()
         if toolkit.g.controller in ['package', 'dataset']:
             user = toolkit.g.userobj
             role = helpers.role_in_org(entity.owner_org, user.name)
@@ -76,6 +75,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
             # Check if there's a request parameter for `current_workflow_status`
             current_workflow_status = toolkit.request.form.get('current_workflow_status', None)
 
+            import pdb; pdb.set_trace()
             if workflow_status != current_workflow_status:
                 # If workflow_status changes from draft to ready_for_approval..
                 if current_workflow_status == 'draft' and workflow_status == 'ready_for_approval':

@@ -320,14 +320,14 @@ def send_notification_email(to, subject, msg):
 
     try:
         mailer.mail_recipient(**mail_dict)
-    except (mailer.MailerException, socket.error):
-        log.error(u'Cannot send workflow status notification email to %s.', to, exc_info=1)
+    except (mailer.MailerException):
+        log1.error(u'Cannot send workflow status notification email to %s.', to, exc_info=1)
 
 
 def get_package_edit_url(package_name):
     from ckan.common import config
     return config.get('ckan.site_url', None) + toolkit.url_for(
-        controller='package',
+        controller='dataset',
         action='edit',
         id=package_name
     )
@@ -336,24 +336,24 @@ def get_package_edit_url(package_name):
 def mail_merge(msg, dict):
 
     if 'organization' in dict:
-        msg = msg.replace('[[ORGANIZATION]]', dict['organization'])
+        msg = str(msg).replace('[[ORGANIZATION]]', dict['organization'])
 
     if 'user' in dict:
-        msg = msg.replace('[[USER]]', dict['user'])
+        msg = str(msg).replace('[[USER]]', dict['user'])
 
     if 'url' in dict:
-        msg = msg.replace('[[URL]]', dict['url'])
+        msg = str(msg).replace('[[URL]]', dict['url'])
 
     if 'email' in dict:
-        msg = msg.replace('[[EMAIL]]', dict['email'])
+        msg = str(msg).replace('[[EMAIL]]', dict['email'])
 
     if 'name' in dict:
-        msg = msg.replace('[[NAME]]', dict['name'])
+        msg = str(msg).replace('[[NAME]]', dict['name'])
 
     if 'notes' in dict and dict['notes'] is not None:
-        msg = msg.replace('[[NOTES]]', '\nThe reviewer added the following notes:\n\n' + dict['notes'] + '\n')
+        msg = str(msg).replace('[[NOTES]]', '\nThe reviewer added the following notes:\n\n' + dict['notes'] + '\n')
     else:
-        msg = msg.replace('[[NOTES]]', '')
+        msg = str(msg).replace('[[NOTES]]', '')
 
     return msg
 
