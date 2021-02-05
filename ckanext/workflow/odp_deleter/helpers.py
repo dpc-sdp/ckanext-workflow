@@ -11,9 +11,6 @@ log = logging.getLogger(__name__)
 # ODP_API_KEY and ODP_URL should be set as a Lagoon environment variables
 odp_api_key = os.getenv('ODP_API_KEY')
 odp_url = os.getenv('ODP_URL')
-# @TODO: Remove default values
-odp_api_key = '54384e40-e97d-4337-932d-fc7eb77e9511'
-odp_url = 'https://ckan-datavic-ckan-odp-pr-101.au.amazee.io'
 
 
 def purge_dataset_from_odp(context, pkg_dict):
