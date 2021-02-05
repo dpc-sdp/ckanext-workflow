@@ -1,0 +1,9 @@
+A failure occurred when trying to delete the following dataset from the ODP {{ odp_url }} environment:
+
+Dataset ID: {{ id }}
+
+Dataset Name: {{ name }}
+
+Reason / Exception: {{ exception }}
+
+Data: {{ pkg_dict|safe }}

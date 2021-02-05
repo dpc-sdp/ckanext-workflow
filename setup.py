@@ -82,6 +82,7 @@ setup(
         [ckan.plugins]
         workflow=ckanext.workflow.plugin:WorkflowPlugin
         datavic_hierarchy_form=ckanext.workflow.plugin:DataVicHierarchyForm
+        odp_deleter = ckanext.workflow.odp_deleter.plugin:ODPDeleter
 
         [babel.extractors]
         ckan = ckan.lib.extract:extract_ckan
