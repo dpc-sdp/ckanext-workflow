@@ -449,4 +449,11 @@ def is_workflow_enabled(id):
             return True
     return False
 
+
+def get_activity_diffs(id):
+    context = {
+        u'model': model, u'session': model.Session,
+        u'user': g.user, u'auth_user_obj': g.userobj
+    }
+    
  

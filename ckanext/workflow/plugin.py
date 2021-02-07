@@ -112,7 +112,8 @@ class WorkflowPlugin(plugins.SingletonPlugin):
             # to_revision = entity.latest_related_revision
             # # TODO: make sure there is a previous revision
             # from_revision = entity.all_related_revisions[1][0]
-            #
+            activities = model.activity.package_activity_list(entity.id, 0, 0)
+
             # diff = entity.diff(to_revision, from_revision)
             #
             # if 'PackageExtra-workflow_status-value' in diff:
