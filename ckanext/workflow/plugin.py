@@ -72,20 +72,20 @@ class WorkflowPlugin(plugins.SingletonPlugin):
             # BEGIN: DATAVIC-251 CKAN 2.9 upgrade
             from pprint import pprint
 
-            # Check if there's a request parameter for `current_workflow_status`
-            current_workflow_status = toolkit.request.form.get('current_workflow_status', None)
+            activity_diffs = helpers.get_activity_diffs(entity.id)
+            # pprint(activity_diffs.get('activities')[0])
+            previous_workflow_status = activity_diffs.get('activities')[0].get('data').get('package').get('workflow_status')
 
-            import pdb; pdb.set_trace()
-            if workflow_status != current_workflow_status:
+            if workflow_status != previous_workflow_status:
                 # If workflow_status changes from draft to ready_for_approval..
-                if current_workflow_status == 'draft' and workflow_status == 'ready_for_approval':
+                if previous_workflow_status == 'draft' and workflow_status == 'ready_for_approval':
                     helpers.notify_admin_users(
                         entity.owner_org,
                         user.name,
                         entity.name
                     )
                 # Else, if workflow_status changes from ready_for_approval back to draft..
-                elif current_workflow_status == 'ready_for_approval' and workflow_status == 'draft':
+                elif previous_workflow_status == 'ready_for_approval' and workflow_status == 'draft':
                     if entity.workflow_status_notes:
                         workflow_status_notes = entity.workflow_status_notes
                     else:
@@ -96,51 +96,6 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                         entity.creator_user_id,
                         workflow_status_notes
                     )
-            # END: DATAVIC-251 CKAN 2.9 upgrade
-            # END: DATAVIC-251 CKAN 2.9 upgrade
-            # https://github.com/ckan/ckan/issues/5772
-
-            ## BEGIN: 2.9 UPGRADE COMMENTED OUT HERE
-            ## BEGIN: 2.9 UPGRADE COMMENTED OUT HERE
-            ## BEGIN: 2.9 UPGRADE COMMENTED OUT HERE
-            #
-            # CKAN 2.9 removed the revisions table for datasets (packages) and now uses the activity stream to record updates
-            #   BUT... activities are NOT recorded for private datasets
-            #   this affects the code where the workflow plugin checks for the change in workflow status in order to notify the admins
-            #
-            # DATAVIC-55    Dataset approval reminders
-            # to_revision = entity.latest_related_revision
-            # # TODO: make sure there is a previous revision
-            # from_revision = entity.all_related_revisions[1][0]
-            activities = model.activity.package_activity_list(entity.id, 0, 0)
-
-            # diff = entity.diff(to_revision, from_revision)
-            #
-            # if 'PackageExtra-workflow_status-value' in diff:
-            #     change = diff['PackageExtra-workflow_status-value'].split('\n')
-            #
-            #     # If workflow_status changes from draft to ready_for_approval..
-            #     if 'draft' in change[0] and 'ready_for_approval' in change[1]:
-            #         helpers.notify_admin_users(
-            #             entity.owner_org,
-            #             user.name,
-            #             entity.name
-            #         )
-            #     # Else, if workflow_status changes from ready_for_approval back to draft..
-            #     elif 'ready_for_approval' in change[0] and 'draft' in change[1]:
-            #         if entity.workflow_status_notes:
-            #             workflow_status_notes = entity.workflow_status_notes
-            #         else:
-            #             workflow_status_notes = entity.extras.get('workflow_status_notes', None)
-            #
-            #         helpers.notify_creator(
-            #             entity.name,
-            #             entity.creator_user_id,
-            #             workflow_status_notes
-            #         )
-            ## END: 2.9 UPGRADE COMMENTED OUT HERE
-            ## END: 2.9 UPGRADE COMMENTED OUT HERE
-            ## END: 2.9 UPGRADE COMMENTED OUT HERE
         # Handle datasets updated through the Harvester differently
         else:
             self.set_harvested_dataset_workflow_properties(entity)

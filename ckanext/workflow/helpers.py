@@ -1,5 +1,6 @@
 # This file contains some helper methods for use in the "Workflow" CKAN extension
 
+import pdb
 import ckan.authz as authz
 import ckan.logic as logic
 import ckan.model as model
@@ -7,7 +8,10 @@ import ckan.plugins.toolkit as toolkit
 import json
 import logging
 
-from ckan.common import config
+from ckan.common import config, g
+
+get_action = logic.get_action
+
 
 log1 = logging.getLogger(__name__)
 
@@ -443,6 +447,9 @@ def is_top_level_organization(id):
 
 
 def is_workflow_enabled(id):
+    '''
+    Helper function to determine if the workflow can be enabled for user
+    '''
     blueprint, endpoint =  toolkit.get_endpoint()
     if blueprint == 'organization':
         if endpoint == 'new' or (endpoint =='edit' and is_top_level_organization(id) == False and is_sysadmin() == False):
@@ -451,9 +458,23 @@ def is_workflow_enabled(id):
 
 
 def get_activity_diffs(id):
+    '''
+    Get last package_activity_list item
+
+    Returns the activity_diff for that activity_item_id
+
+    TODO: Check if we need to include `include_hidden_activity`
+    '''
     context = {
         u'model': model, u'session': model.Session,
         u'user': g.user, u'auth_user_obj': g.userobj
     }
-    
+    pkg_activity_list = get_action(u'package_activity_list')(context, {
+        u'id': id, 'limit': 1})
+        
+    activity_diff = get_action('activity_diff')(context, {
+        u'id': pkg_activity_list[0].get('id'), u'object_type': u'package'
+    })
+    return activity_diff
+
  
