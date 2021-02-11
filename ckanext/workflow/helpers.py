@@ -472,9 +472,13 @@ def get_activity_diffs(id):
     pkg_activity_list = get_action(u'package_activity_list')(context, {
         u'id': id, 'limit': 1})
         
-    activity_diff = get_action('activity_diff')(context, {
-        u'id': pkg_activity_list[0].get('id'), u'object_type': u'package'
-    })
-    return activity_diff
+    if pkg_activity_list:
+        activity_diff = get_action('activity_show')(context, {
+            u'id': pkg_activity_list[0].get('id'), u'object_type': u'package',
+            u'include_data': True
+        })
+        return activity_diff
+    
+    return None
 
  

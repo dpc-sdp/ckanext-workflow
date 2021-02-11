@@ -73,28 +73,30 @@ class WorkflowPlugin(plugins.SingletonPlugin):
             from pprint import pprint
 
             activity_diffs = helpers.get_activity_diffs(entity.id)
-            # pprint(activity_diffs.get('activities')[0])
-            previous_workflow_status = activity_diffs.get('activities')[0].get('data').get('package').get('workflow_status')
+            # Check if there are recoreded activities 
+            if activity_diffs:
+                # pprint(activity_diffs.get('activities')[0])
+                previous_workflow_status = activity_diffs.get('data').get('package').get('workflow_status')
 
-            if workflow_status != previous_workflow_status:
-                # If workflow_status changes from draft to ready_for_approval..
-                if previous_workflow_status == 'draft' and workflow_status == 'ready_for_approval':
-                    helpers.notify_admin_users(
-                        entity.owner_org,
-                        user.name,
-                        entity.name
-                    )
-                # Else, if workflow_status changes from ready_for_approval back to draft..
-                elif previous_workflow_status == 'ready_for_approval' and workflow_status == 'draft':
-                    if entity.workflow_status_notes:
-                        workflow_status_notes = entity.workflow_status_notes
-                    else:
-                        workflow_status_notes = entity.extras.get('workflow_status_notes', None)
+                if workflow_status != previous_workflow_status:
+                    # If workflow_status changes from draft to ready_for_approval..
+                    if previous_workflow_status == 'draft' and workflow_status == 'ready_for_approval':
+                        helpers.notify_admin_users(
+                            entity.owner_org,
+                            user.name,
+                            entity.name
+                        )
+                    # Else, if workflow_status changes from ready_for_approval back to draft..
+                    elif previous_workflow_status == 'ready_for_approval' and workflow_status == 'draft':
+                        if entity.workflow_status_notes:
+                            workflow_status_notes = entity.workflow_status_notes
+                        else:
+                            workflow_status_notes = entity.extras.get('workflow_status_notes', None)
 
-                    helpers.notify_creator(
-                        entity.name,
-                        entity.creator_user_id,
-                        workflow_status_notes
+                        helpers.notify_creator(
+                            entity.name,
+                            entity.creator_user_id,
+                            workflow_status_notes
                     )
         # Handle datasets updated through the Harvester differently
         else:
