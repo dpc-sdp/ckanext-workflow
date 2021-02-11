@@ -49,8 +49,7 @@ def purge_dataset_from_odp(context, pkg_dict):
     if pkg_id:
         odp_pkg = get_odp_package(context, pkg_id)
 
-        # Check the ODP package was created via a harvest, i.e. it has the `harvest_url` extra key
-        if odp_pkg and package_has_harvest_url(odp_pkg.get('extras')):
+        if odp_pkg:
             log.debug('>>> Queueing job to send ODP purge request for pkg ID: {0} - name: {1}'.format(odp_pkg.get('id'), odp_pkg.get('name')))
             toolkit.enqueue_job(send_package_purge_request, [
                 odp_pkg
