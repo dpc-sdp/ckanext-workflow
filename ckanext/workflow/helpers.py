@@ -1,6 +1,5 @@
 # This file contains some helper methods for use in the "Workflow" CKAN extension
 
-import pdb
 import ckan.authz as authz
 import ckan.logic as logic
 import ckan.model as model
