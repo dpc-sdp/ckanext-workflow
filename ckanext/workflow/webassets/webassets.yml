@@ -1,4 +1,6 @@
 workflow:
-  content:
+  output: ckanext-workflow/%(version)s_workflow.js
+  contents:
    - workflow.js
   filters: rjsmin
+  
