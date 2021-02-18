@@ -1,0 +1,6 @@
+Please set the ODP_API_KEY and ODP_URL environment variables on the {{ environment|title }} environment.
+
+ODP_API_KEY: {{ odp_api_key }}
+ODP_URL: {{ odp_url }}
+
+{{ url }}
