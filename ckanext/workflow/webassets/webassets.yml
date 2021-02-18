@@ -2,5 +2,8 @@ workflow:
   output: ckanext-workflow/%(version)s_workflow.js
   contents:
    - workflow.js
+  extra:
+    preload:
+      - base/main
   filters: rjsmin
   
