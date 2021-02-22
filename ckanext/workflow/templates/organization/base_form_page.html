@@ -6,8 +6,6 @@
 {% block primary_content_inner %}
  {{ super() }}
   {% if workflow %}
-     {% block scripts %}
          {% asset 'ckanext-workflow/workflow' %}
-      {% endblock%}
   {% endif %}
 {% endblock %}

@@ -145,7 +145,7 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
     def update_config(self, config):
         ''' Setup the (fanstatic) resource library, public and template directory '''
         plugins.toolkit.add_template_directory(config, 'templates')
-        plugins.toolkit.add_resource('webassets', 'workflow')
+        plugins.toolkit.add_resource('webassets', 'ckanext-workflow')
 
     ## ITemplateHelpers interface ##
 
@@ -154,6 +154,7 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
             'is_sysadmin': helpers.is_sysadmin,
             'is_top_level_organization': helpers.is_top_level_organization,
             'is_workflow_enabled': helpers.is_workflow_enabled,
+            'show_top_level_option': helpers.show_top_level_option,
         }
 
     def group_types(self):

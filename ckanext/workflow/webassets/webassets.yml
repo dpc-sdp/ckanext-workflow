@@ -6,4 +6,3 @@ workflow:
     preload:
       - base/main
   filters: rjsmin
-  

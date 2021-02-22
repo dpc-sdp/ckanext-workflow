@@ -480,4 +480,23 @@ def get_activity_diffs(id):
     
     return None
 
+
+def show_top_level_option(group_id, selected_parent):
+    user =toolkit.c.user
+    # No restrictions for `sysadmin` users
+    if authz.is_sysadmin(user):
+        return True
+    else:
+        # Only apply this behaviour if role cascading disabled..
+        role_cascading_enabled = config.get('ckan.auth.roles_that_cascade_to_sub_groups', False)
+
+        if not role_cascading_enabled:
+            # It has to be an edit / manage action and
+            # the organisation being managed has to be a top level org
+            if c.controller == 'organization' and c.action == 'edit' \
+                    and group_id and not selected_parent:
+                return True
+        else:
+            return True
+
  
