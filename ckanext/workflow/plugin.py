@@ -38,7 +38,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
 
     def create(self, entity):
         # DATAVIC-56: "Each dataset is initially created in a 'Draft' status"
-        if toolkit.g.controller in ['package', 'dataset']:
+        if toolkit.g and toolkit.g.controller in ['package', 'dataset']:
             entity.extras['workflow_status'] = 'draft'
         # Harvester created datasets
         else:
@@ -49,7 +49,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def edit(self, entity):
 
         # Datasets updated through the UI need to be handled differently that those updated via the Harvester
-        if toolkit.g.controller in ['package', 'dataset']:
+        if toolkit.g and toolkit.g.controller in ['package', 'dataset']:
             user = toolkit.g.userobj
             role = helpers.role_in_org(entity.owner_org, user.name)
 
@@ -167,7 +167,7 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
         #from pylons import tmpl_context as c
 
         #  DataVic - we filter these in context of logged in user
-        user = toolkit.c.userobj
+        user = toolkit.g.userobj
 
         if authz.is_sysadmin(user.name):
             toolkit.g.allowable_parent_groups = model.Group.all(
