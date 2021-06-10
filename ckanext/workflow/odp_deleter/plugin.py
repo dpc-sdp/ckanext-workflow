@@ -26,6 +26,7 @@ class ODPDeleter(p.SingletonPlugin):
     def after_delete(self, context, pkg_dict):
         # For Data.Vic - when a dataset/package is deleted from the IAR
         # we need to subsequently delete it from the public ODP CKAN instance
+        log.info("Recieved pckage {0}".format(pkg_dict))
         log.info("Preparing to purge ODP package {0} from IAR ".format(pkg_dict.get('name')))
         helpers.purge_dataset_from_odp(context, pkg_dict)
         pass
