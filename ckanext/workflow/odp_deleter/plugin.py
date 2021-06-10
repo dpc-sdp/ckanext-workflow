@@ -3,6 +3,11 @@ import ckan.plugins as p
 from ckanext.workflow.odp_deleter import helpers
 
 
+import logging
+
+log = logging.getLogger(__name__)
+
+
 class ODPDeleter(p.SingletonPlugin):
     '''
     A plugin for deleting datasets from an ODP when deleted from an IAR
@@ -21,6 +26,7 @@ class ODPDeleter(p.SingletonPlugin):
     def after_delete(self, context, pkg_dict):
         # For Data.Vic - when a dataset/package is deleted from the IAR
         # we need to subsequently delete it from the public ODP CKAN instance
+        log.info("Preparing to purge ODP package {0} from IAR ".format(pkg_dict.get('name')))
         helpers.purge_dataset_from_odp(context, pkg_dict)
         pass
 

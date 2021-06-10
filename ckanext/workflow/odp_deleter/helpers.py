@@ -123,8 +123,11 @@ def send_package_purge_request(odp_pkg):
     odp = RemoteCKAN(odp_url, odp_api_key)
 
     try:
+        log.info("Purging dataset {0}".format(odp_pkg.get('name')))
         odp.action.dataset_purge(id=odp_pkg.get('id'))
     except Exception as e:
+        log.error("Error while purging package")
+        log.error(e)
         email_template = 'odp_deletion_failure'
         email_vars['exception'] = str(e)
 
