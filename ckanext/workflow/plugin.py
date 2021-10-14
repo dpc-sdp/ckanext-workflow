@@ -38,7 +38,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
 
     def create(self, entity):
         # DATAVIC-56: "Each dataset is initially created in a 'Draft' status"
-        if toolkit.g and toolkit.g.controller in ['package', 'dataset']:
+        if toolkit.get_endpoint() in ['package', 'dataset']:
             entity.extras['workflow_status'] = 'draft'
         # Harvester created datasets
         else:
@@ -49,7 +49,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def edit(self, entity):
 
         # Datasets updated through the UI need to be handled differently that those updated via the Harvester
-        if toolkit.g and toolkit.g.controller in ['package', 'dataset']:
+        if toolkit.get_endpoint in ['package', 'dataset']:
             user = toolkit.g.userobj
             role = helpers.role_in_org(entity.owner_org, user.name)
 
