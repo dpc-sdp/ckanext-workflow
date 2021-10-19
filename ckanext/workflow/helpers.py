@@ -1,18 +1,17 @@
 # This file contains some helper methods for use in the "Workflow" CKAN extension
 
 import ckan.authz as authz
-import ckan.logic as logic
 import ckan.model as model
 import ckan.plugins.toolkit as toolkit
 import json
 import logging
 
-from ckan.common import config, g
+get_action = toolkit.get_action
+config = toolkit.config
+g = toolkit.g
+get_or_bust = toolkit.get_or_bust
 
-get_action = logic.get_action
-
-
-log1 = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 def is_private_site_and_user_not_logged_in():
@@ -22,6 +21,8 @@ def is_private_site_and_user_not_logged_in():
     return False
 
 #
+
+
 def load_workflow_settings():
     '''
     Load some config info from a json file
@@ -77,27 +78,28 @@ def get_organization_id(data_dict, fq):
 
     return organization_id
 
+
 def get_user_organizations(username):
     user = model.User.get(username)
     return user.get_groups('organization')
 
 
 def is_user_in_parent_organization(organization, user_organizations):
-    log1.debug("*** CHECKING: PARENTS...")
+    log.debug("*** CHECKING: PARENTS...")
     parents = organization.get_parent_groups('organization')
 
     return find_match_in_list(parents, user_organizations)
 
 
 def is_user_in_child_organization(organization, user_organizations):
-    log1.debug("*** CHECKING: CHILDREN...")
+    log.debug("*** CHECKING: CHILDREN...")
     children = organization.get_children_groups('organization')
     return find_match_in_list(children, user_organizations)
 
 
 def is_user_in_family_organization(organization, user_organizations):
     debug = config.get('debug', False)
-    log1.debug("*** CHECKING: FAMILY...")
+    log.debug("*** CHECKING: FAMILY...")
     if debug:
         from pprint import pprint
         print(">>> Users organisations:")
@@ -108,7 +110,7 @@ def is_user_in_family_organization(organization, user_organizations):
         return True
     else:
         # If user does not belong to any ancestors, checked the descendants of the ancestors
-        log1.debug("*** User not found in any Ancestors... Checking in Ancestor Descendants...")
+        log.debug("*** User not found in any Ancestors... Checking in Ancestor Descendants...")
         if ancestors:
             for ancestor in ancestors:
                 descendants = ancestor.get_children_group_hierarchy('organization')
@@ -122,10 +124,10 @@ def is_user_in_family_organization(organization, user_organizations):
 
 def find_match_in_list(list_1, list_2):
     for list_1_item in list_1:
-        log1.debug("Checking: %s | %s", list_1_item.id, list_1_item.name)
+        log.debug("Checking: %s | %s", list_1_item.id, list_1_item.name)
         for list_2_item in list_2:
             if list_2_item.id == list_1_item.id:
-                log1.debug("Match found: %s | %s", list_2_item.id, list_2_item.name)
+                log.debug("Match found: %s | %s", list_2_item.id, list_2_item.name)
                 return True
     return False
 
@@ -151,6 +153,7 @@ def get_organization_relationships_for_user(organization, user_organizations):
 def big_separator(output=False):
     str = "= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = ="
     return separator(output, str)
+
 
 def separator(output=False, str=None):
     if str is None:
@@ -201,7 +204,7 @@ def apply_admin_workflow_status_rules(current_workflow_status, workflow_status):
 
 
 def get_workflow_status_for_role(current_workflow_status, workflow_status, user_name, owner_org_id):
-    user = toolkit.c.userobj
+    user = g.userobj
     role = role_in_org(owner_org_id, user.name)
 
     # Sysadmin can do whatever they like..
@@ -237,7 +240,7 @@ def get_member_list(context, data_dict=None):
     '''
     model = context['model']
 
-    group = model.Group.get(logic.get_or_bust(data_dict, 'id'))
+    group = model.Group.get(get_or_bust(data_dict, 'id'))
     if not group:
         raise NotFound
 
@@ -293,22 +296,6 @@ def get_admin_users_for_org(owner_org):
     return admin_users
 
 
-def load_notification_template(template):
-    import os
-
-    path = os.path.dirname(os.path.realpath(__file__)) + template
-
-    try:
-        fp = open(path, 'rb')
-        notification_template = fp.read()
-        fp.close()
-
-        return notification_template
-    except IOError as error:
-        log1.error(error)
-        raise
-
-
 def send_notification_email(to, subject, msg):
     import ckan.lib.mailer as mailer
 
@@ -324,41 +311,15 @@ def send_notification_email(to, subject, msg):
     try:
         mailer.mail_recipient(**mail_dict)
     except (mailer.MailerException):
-        log1.error(u'Cannot send workflow status notification email to %s.', to, exc_info=1)
+        log.error(u'Cannot send workflow status notification email to %s.', to, exc_info=1)
 
 
 def get_package_edit_url(package_name):
-    from ckan.common import config
     return config.get('ckan.site_url', None) + toolkit.url_for(
         controller='dataset',
         action='edit',
         id=package_name
     )
-
-
-def mail_merge(msg, dict):
-
-    if 'organization' in dict:
-        msg = str(msg).replace('[[ORGANIZATION]]', dict['organization'])
-
-    if 'user' in dict:
-        msg = str(msg).replace('[[USER]]', dict['user'])
-
-    if 'url' in dict:
-        msg = str(msg).replace('[[URL]]', dict['url'])
-
-    if 'email' in dict:
-        msg = str(msg).replace('[[EMAIL]]', dict['email'])
-
-    if 'name' in dict:
-        msg = str(msg).replace('[[NAME]]', dict['name'])
-
-    if 'notes' in dict and dict['notes'] is not None:
-        msg = str(msg).replace('[[NOTES]]', '\nThe reviewer added the following notes:\n\n' + dict['notes'] + '\n')
-    else:
-        msg = str(msg).replace('[[NOTES]]', '')
-
-    return msg
 
 
 def notify_admin_users(owner_org, user_name, package_name):
@@ -367,13 +328,12 @@ def notify_admin_users(owner_org, user_name, package_name):
     if admin_users:
         org = model.Group.get(owner_org)
 
-        msg = load_notification_template('/templates/email/notification-admin.txt')
-
-        msg = mail_merge(msg, {
-            'organization': org.name,
-            'user': user_name,
-            'url': get_package_edit_url(package_name)
-        })
+        msg = toolkit.render('email/notification-admin.txt',
+                             extra_vars={
+                                 'organization': org.name,
+                                 'user': user_name,
+                                 'url': get_package_edit_url(package_name)
+                             })
 
         for user in admin_users:
             send_notification_email(
@@ -386,19 +346,19 @@ def notify_admin_users(owner_org, user_name, package_name):
 def notify_creator(package_name, creator_user_id, notes=None):
     user = model.User.get(creator_user_id)
     if user:
-        msg = load_notification_template('/templates/email/notification-creator.txt')
+        msg = toolkit.render('email/notification-creator.txt',
+                             extra_vars={
+                                 'name': user.name,
+                                 'email': user.email,
+                                 'url': get_package_edit_url(package_name),
+                                 'notes': notes
+                             })
 
         send_notification_email(
             user.email,
             'Dataset workflow changed to Draft',
-            mail_merge(
-                msg,
-                {
-                    'name': user.name,
-                    'email': user.email,
-                    'url': get_package_edit_url(package_name),
-                    'notes': notes
-                }))
+            msg
+        )
     return
 
 
@@ -416,7 +376,7 @@ def user_can_view_private_dataset(package, user_name):
     workflow_status = package.extras.get('workflow_status')
     # We only need to consider additional rules if the dataset is in the published workflow status other the default CKAN rules apply
     if workflow_status == 'published':
-    # Anyone logged in user can see a dataset with workflow_status: 'published' and organization_visibility: 'all'
+        # Anyone logged in user can see a dataset with workflow_status: 'published' and organization_visibility: 'all'
         if organization_visibility == 'all':
             return {'success': True}
         elif organization_visibility in ['child', 'parent', 'family']:
@@ -428,12 +388,14 @@ def user_can_view_private_dataset(package, user_name):
     # @Todo: Question: Can editors see other editors drafts? or ready for approval datasets?
     return False
 
-def is_sysadmin():
-        user = toolkit.g.userobj
-        if authz.is_sysadmin(user.name):
-            return True
 
-        return False
+def is_sysadmin():
+    user = g.userobj
+    if authz.is_sysadmin(user.name):
+        return True
+
+    return False
+
 
 def is_top_level_organization(id):
     group = model.Group.get(id)
@@ -449,9 +411,9 @@ def is_workflow_enabled(id):
     '''
     Helper function to determine if the workflow can be enabled for user
     '''
-    blueprint, endpoint =  toolkit.get_endpoint()
+    blueprint, endpoint = toolkit.get_endpoint()
     if blueprint == 'organization':
-        if endpoint == 'new' or (endpoint =='edit' and is_top_level_organization(id) == False and is_sysadmin() == False):
+        if endpoint == 'new' or (endpoint == 'edit' and is_top_level_organization(id) == False and is_sysadmin() == False):
             return True
     return False
 
@@ -470,19 +432,19 @@ def get_activity_diffs(id):
     }
     pkg_activity_list = get_action(u'package_activity_list')(context, {
         u'id': id, 'limit': 1})
-        
+
     if pkg_activity_list:
         activity_diff = get_action('activity_show')(context, {
             u'id': pkg_activity_list[0].get('id'), u'object_type': u'package',
             u'include_data': True
         })
         return activity_diff
-    
+
     return None
 
 
 def show_top_level_option(group_id, selected_parent):
-    user =toolkit.c.user
+    user = g.user
     # No restrictions for `sysadmin` users
     if authz.is_sysadmin(user):
         return True
@@ -493,10 +455,8 @@ def show_top_level_option(group_id, selected_parent):
         if not role_cascading_enabled:
             # It has to be an edit / manage action and
             # the organisation being managed has to be a top level org
-            if c.controller == 'organization' and c.action == 'edit' \
+            if toolkit.get_endpoint() == ('organization', 'edit') \
                     and group_id and not selected_parent:
                 return True
         else:
             return True
-
- 

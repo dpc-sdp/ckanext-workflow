@@ -1,28 +1,28 @@
 # copied from get.py
 import ckan.authz as authz
-import ckan.lib.navl.dictization_functions
+import ckan.lib.navl.dictization_functions as dictization_functions
 import ckan.lib.search as search
-import ckan.logic as logic
-# import ckan.model as model
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
+import ckan.logic as logic
 import logging
 import json
 from ckanext.workflow import helpers
 from ckanext.workflow.logic import queries
 from pprint import pprint
 
-_validate = ckan.lib.navl.dictization_functions.validate
-_check_access = logic.check_access
+_validate = dictization_functions.validate
+_check_access = toolkit.check_access
+_get_action = toolkit.get_action
 
-log1 = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
-@logic.side_effect_free
+@toolkit.side_effect_free
 def datavic_package_search(context, data_dict):
     # DEBUG:
-    log1.debug(helpers.big_separator())
-    log1.debug("*** datavic_package_search PACKAGE_SEARCH ***")
+    log.debug(helpers.big_separator())
+    log.debug("*** datavic_package_search PACKAGE_SEARCH ***")
     '''
     NOTE: This is copied directly from:
     
@@ -232,7 +232,7 @@ def datavic_package_search(context, data_dict):
             capacity_fq = queries.package_search_filter_query(user)
         else:
             # This is the default CKAN search behaviour retained from the core package_search function
-            orgs = logic.get_action('organization_list_for_user')(
+            orgs = _get_action('organization_list_for_user')(
                 {'user': user}, {'permission': 'read'})
             if orgs:
                 capacity_fq = '({0} OR owner_org:({1}))'.format(
@@ -246,9 +246,9 @@ def datavic_package_search(context, data_dict):
 
         # DEBUG:
         # if controller_action in ['organization.read', 'package.search']:
-        #     log1.debug('*** DATA_DICT BEFORE capacity_fq ***')
-        #     log1.debug(pprint(data_dict))
-        #     log1.debug(helpers.separator())
+        #     log.debug('*** DATA_DICT BEFORE capacity_fq ***')
+        #     log.debug(pprint(data_dict))
+        #     log.debug(helpers.separator())
 
         if capacity_fq:
             fq = ' '.join(p for p in fq.split() if 'capacity:' not in p)
@@ -256,9 +256,9 @@ def datavic_package_search(context, data_dict):
 
         # DEBUG:
         # if controller_action in ['organization.read', 'package.search']:
-        #     log1.debug('*** DATA_DICT AFTER capacity_fq ***')
-        #     log1.debug(pprint(data_dict))
-        #     log1.debug(helpers.separator())
+        #     log.debug('*** DATA_DICT AFTER capacity_fq ***')
+        #     log.debug(pprint(data_dict))
+        #     log.debug(helpers.separator())
 
         fq = data_dict.get('fq', '')
         if include_drafts:
@@ -281,8 +281,8 @@ def datavic_package_search(context, data_dict):
 
         # DEBUG:
         # if controller_action in ['organization.read', 'package.search']:
-        #     log1.debug('*** DATA_DICT BEFORE QUERY ***')
-        #     log1.debug(pprint(data_dict))
+        #     log.debug('*** DATA_DICT BEFORE QUERY ***')
+        #     log.debug(pprint(data_dict))
         #     helpers.separator()
 
         query.run(data_dict)
@@ -293,7 +293,7 @@ def datavic_package_search(context, data_dict):
         for package in query.results:
             # get the package object
             package_dict = package.get(data_source)
-            ## use data in search index if there
+            # use data in search index if there
             if package_dict:
                 # the package_dict still needs translating when being viewed
                 package_dict = json.loads(package_dict)
@@ -319,7 +319,6 @@ def datavic_package_search(context, data_dict):
         'results': results,
         'sort': data_dict['sort']
     }
-
 
     # create a lookup table of group name to title for all the groups and
     # organizations in the current search's facets.
@@ -371,42 +370,3 @@ def datavic_package_search(context, data_dict):
             key=lambda facet: facet['display_name'], reverse=True)
 
     return search_results
-
-def organization_create(context, data_dict=None):
-    user = toolkit.c.userobj
-    # Sysadmin can do anything
-    if authz.is_sysadmin(user.name):
-        return {'success': True}
-
-    if not authz.auth_is_anon_user(context):
-        orgs = helpers.get_user_organizations(user.name)
-        for org in orgs:
-            role = helpers.role_in_org(org.id, user.name)
-            if role == 'admin':
-                return {'success': True}
-
-    return {'success': False, 'msg': 'Only user level admin or above can create an organisation.'}
-
-
-def organization_update(context, data_dict=None):
-    user = toolkit.c.userobj
-    # Sysadmin can do anything
-    if authz.is_sysadmin(user.name):
-        return {'success': True}
-
-    if not authz.auth_is_anon_user(context):
-
-        if data_dict is not None and 'id' in data_dict:
-            organization_id = data_dict['id']
-        elif 'group' in context:
-            organization_id = context['group'].id
-        else:
-            log1.debug('Scenario not accounted for in ckanext-workflow > plugin.py')
-
-        if organization_id:
-            role = helpers.role_in_org(organization_id, user.name)
-            if role == 'admin':
-                return {'success': True}
-
-    return {'success': False, 'msg': 'Only user level admin or above can update an organisation.'}
-

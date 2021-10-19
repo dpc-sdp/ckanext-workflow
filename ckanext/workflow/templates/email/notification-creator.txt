@@ -1,7 +1,7 @@
-Hi [[NAME]],
+Hi {{name}},
 
-A dataset associated with your account ([[EMAIL]]]) has been set to Draft.
-[[NOTES]]
+A dataset associated with your account ({{email}}) has been set to Draft.
+{{notes}}
 Please click here to review this dataset:
 
-[[URL]]
+{{url}}
