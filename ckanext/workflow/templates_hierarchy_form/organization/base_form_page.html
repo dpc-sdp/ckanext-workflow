@@ -1,0 +1,11 @@
+{% ckan_extends %}
+
+{% set org_id = group_dict.id if group_dict else None %}
+{% set workflow = h.is_workflow_enabled(org_id) %}
+
+{% block primary_content_inner %}
+ {{ super() }}
+  {% if workflow %}
+         {% asset 'ckanext-hierarchy-form/workflow' %}
+  {% endif %}
+{% endblock %}

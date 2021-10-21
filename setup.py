@@ -80,8 +80,8 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points='''
         [ckan.plugins]
-        workflow=ckanext.workflow.plugin:WorkflowPlugin
-        datavic_hierarchy_form=ckanext.workflow.plugin:DataVicHierarchyForm
+        workflow=ckanext.workflow.workflow_plugin:WorkflowPlugin
+        datavic_hierarchy_form=ckanext.workflow.hierarchy_form_plugin:DataVicHierarchyForm
         odp_deleter = ckanext.workflow.odp_deleter.plugin:ODPDeleter
 
         [babel.extractors]

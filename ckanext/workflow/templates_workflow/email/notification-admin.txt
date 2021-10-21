@@ -1,0 +1,9 @@
+Hi there,
+
+A dataset belonging to the `{{organization}}` organisation has been set to Ready for Approval by the following user:
+
+{{user}}
+
+Please click here to review this dataset:
+
+{{url}}

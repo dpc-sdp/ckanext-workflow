@@ -1,0 +1,7 @@
+Hi {{name}},
+
+A dataset associated with your account ({{email}}) has been set to Draft.
+{{notes}}
+Please click here to review this dataset:
+
+{{url}}

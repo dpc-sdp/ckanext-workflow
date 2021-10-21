@@ -1,7 +1,0 @@
-Hi [[NAME]],
-
-A dataset associated with your account ([[EMAIL]]]) has been set to Draft.
-[[NOTES]]
-Please click here to review this dataset:
-
-[[URL]]
