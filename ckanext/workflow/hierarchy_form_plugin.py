@@ -20,8 +20,8 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
 
     def update_config(self, config):
         ''' Setup the (fanstatic) resource library, public and template directory '''
-        toolkit.add_template_directory(config, 'templates')
-        toolkit.add_resource('webassets', 'ckanext-workflow')
+        toolkit.add_template_directory(config, 'templates_hierarchy_form')
+        toolkit.add_resource('webassets', 'ckanext-hierarchy-form')
 
     ## ITemplateHelpers interface ##
 

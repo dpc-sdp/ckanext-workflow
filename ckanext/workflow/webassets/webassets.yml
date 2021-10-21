@@ -1,5 +1,5 @@
 workflow:
-  output: ckanext-workflow/%(version)s_workflow.js
+  output: ckanext-hierarchy-form/%(version)s_workflow.js
   contents:
    - workflow.js
   extra:

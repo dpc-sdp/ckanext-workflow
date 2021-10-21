@@ -15,6 +15,12 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.IActions)
+    plugins.implements(plugins.IConfigurer)
+
+    # IConfigurer interface #
+    def update_config(self, config):
+        ''' Setup the template directory '''
+        toolkit.add_template_directory(config, 'templates_workflow')
 
     # IAuthFunctions
     def get_auth_functions(self):
