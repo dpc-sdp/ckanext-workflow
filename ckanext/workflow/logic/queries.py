@@ -13,9 +13,7 @@ def organization_read_filter_query(organization_id, username):
 
     organization = model.Group.get(organization_id)
 
-    rules = [
-        '(capacity:public AND workflow_status:"published" AND organization_visibility:"all")'
-    ]
+    rules = []
 
     # Return early if private site and non-logged in user..
     if helpers.is_private_site_and_user_not_logged_in():
