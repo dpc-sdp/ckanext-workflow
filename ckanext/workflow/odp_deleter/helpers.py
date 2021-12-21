@@ -1,10 +1,10 @@
+import ckan.lib.jinja_extensions as jinja_extensions
 import ckan.lib.mailer as mailer
 import ckan.plugins.toolkit as toolkit
 import logging
 import os
 
 from ckanapi import RemoteCKAN, NotFound
-from ckan.lib.base import render_jinja2
 
 log = logging.getLogger(__name__)
 
@@ -164,3 +164,11 @@ def send_deletion_notification_email(template, data_dict, email_addresses=None):
         except mailer.MailerException as e:
             log.error(u'Failed to send email {0} to {1}.'.format(template, email))
             log.error('Error: {}'.format(e))
+
+
+def render_jinja2(template_name, extra_vars):
+    # CKAN Job worker does to use pylons/flask request so we can not use toolkit.render
+    # Need to setup/create our own jinja env to get and render templates
+    env = jinja_extensions.Environment(**jinja_extensions.get_jinja_env_options())
+    template = env.get_template(template_name)
+    return template.render(**extra_vars)
