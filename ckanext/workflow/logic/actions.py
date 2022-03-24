@@ -229,8 +229,9 @@ def datavic_package_search(context, data_dict):
             '''
                 DataVic: Implement our own logic for determining the organisational search rules..
             '''
-            capacity_fq, fq = _get_capacity_fq(fq)
-            capacity_fq += queries.package_search_filter_query(user)
+            capacity, fq = _get_capacity_fq(fq)
+            query = queries.package_search_filter_query(user)
+            capacity_fq = capacity + query if capacity else query
         else:
             # This is the default CKAN search behaviour retained from the core package_search function
             orgs = _get_action('organization_list_for_user')(
@@ -374,7 +375,7 @@ def datavic_package_search(context, data_dict):
 
 
 def _get_capacity_fq(fq):
-    capacity_fq = ''
+    capacity_fq = None
     if toolkit.get_endpoint() == ('dataset', 'search'):
         # The selected visibility from the form comes through in the fq query as a string
         # Strip and split to get the visibility value
