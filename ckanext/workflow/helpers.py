@@ -5,6 +5,7 @@ import ckan.model as model
 import ckan.plugins.toolkit as toolkit
 import json
 import logging
+import ckan.lib.mailer as mailer
 
 get_action = toolkit.get_action
 config = toolkit.config
@@ -290,14 +291,16 @@ def get_admin_users_for_org(owner_org):
 
     for member in member_list:
         user = model.User.get(member[0])
-        if user:
+        if user and user.email:
             admin_users.append(user.email)
 
     return admin_users
 
 
 def send_notification_email(to, subject, msg):
-    import ckan.lib.mailer as mailer
+    if not to:
+        log.warning('send_notification_email: No email set for user')
+        return
 
     # Attempt to send mail.
     mail_dict = {
@@ -345,7 +348,7 @@ def notify_admin_users(owner_org, user_name, package_name):
 
 def notify_creator(package_name, creator_user_id, notes=None):
     user = model.User.get(creator_user_id)
-    if user:
+    if user and user.email:
         msg = toolkit.render('email/notification-creator.txt',
                              extra_vars={
                                  'name': user.name,
