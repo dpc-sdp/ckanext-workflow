@@ -209,6 +209,7 @@ def datavic_package_search(context, data_dict):
         capacity_fq = 'capacity:"public"'
         if include_private and authz.is_sysadmin(user):
             capacity_fq, fq = _get_capacity_fq(fq)
+            data_dict['fq'] = fq
         elif controller_action == 'organization.read':
             if 'owner_org:' in fq:
                 organization_id = helpers.get_organization_id(data_dict, fq)
@@ -230,6 +231,7 @@ def datavic_package_search(context, data_dict):
                 DataVic: Implement our own logic for determining the organisational search rules..
             '''
             capacity, fq = _get_capacity_fq(fq)
+            data_dict['fq'] = fq
             query = queries.package_search_filter_query(user)
             capacity_fq = capacity + query if capacity else query
         else:
