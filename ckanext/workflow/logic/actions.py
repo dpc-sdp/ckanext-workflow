@@ -160,7 +160,7 @@ def datavic_package_search(context, data_dict):
     data_dict.update(data_dict.get('__extras', {}))
     data_dict.pop('__extras', None)
     if errors:
-        raise ValidationError(errors)
+        raise toolkit.ValidationError(errors)
 
     model = context['model']
     session = context['session']
@@ -208,7 +208,8 @@ def datavic_package_search(context, data_dict):
 
         capacity_fq = 'capacity:"public"'
         if include_private and authz.is_sysadmin(user):
-            capacity_fq = None
+            capacity_fq, fq = _get_capacity_fq(fq)
+            data_dict['fq'] = fq
         elif controller_action == 'organization.read':
             if 'owner_org:' in fq:
                 organization_id = helpers.get_organization_id(data_dict, fq)
@@ -225,11 +226,14 @@ def datavic_package_search(context, data_dict):
                 # Remove the `owner_org` from the `fq` search param as we've now used it to
                 # reconstruct the search params for Organization view
                 fq = ' '.join(p for p in fq.split() if 'owner_org:' not in p)
-        elif controller_action == 'package.search':
+        elif controller_action == 'dataset.search':
             '''
                 DataVic: Implement our own logic for determining the organisational search rules..
             '''
-            capacity_fq = queries.package_search_filter_query(user)
+            capacity, fq = _get_capacity_fq(fq)
+            data_dict['fq'] = fq
+            query = queries.package_search_filter_query(user)
+            capacity_fq = capacity + query if capacity else query
         else:
             # This is the default CKAN search behaviour retained from the core package_search function
             orgs = _get_action('organization_list_for_user')(
@@ -245,7 +249,7 @@ def datavic_package_search(context, data_dict):
                 authz.get_user_id_for_username(user))
 
         # DEBUG:
-        # if controller_action in ['organization.read', 'package.search']:
+        # if controller_action in ['organization.read', 'dataset.search']:
         #     log.debug('*** DATA_DICT BEFORE capacity_fq ***')
         #     log.debug(pprint(data_dict))
         #     log.debug(helpers.separator())
@@ -255,7 +259,7 @@ def datavic_package_search(context, data_dict):
             data_dict['fq'] = capacity_fq + ' ' + fq
 
         # DEBUG:
-        # if controller_action in ['organization.read', 'package.search']:
+        # if controller_action in ['organization.read', 'dataset.search']:
         #     log.debug('*** DATA_DICT AFTER capacity_fq ***')
         #     log.debug(pprint(data_dict))
         #     log.debug(helpers.separator())
@@ -280,7 +284,7 @@ def datavic_package_search(context, data_dict):
         query = search.query_for(model.Package)
 
         # DEBUG:
-        # if controller_action in ['organization.read', 'package.search']:
+        # if controller_action in ['organization.read', 'dataset.search']:
         #     log.debug('*** DATA_DICT BEFORE QUERY ***')
         #     log.debug(pprint(data_dict))
         #     helpers.separator()
@@ -370,3 +374,21 @@ def datavic_package_search(context, data_dict):
             key=lambda facet: facet['display_name'], reverse=True)
 
     return search_results
+
+
+def _get_capacity_fq(fq):
+    capacity_fq = None
+    if toolkit.get_endpoint() == ('dataset', 'search'):
+        # The selected visibility from the form comes through in the fq query as a string
+        # Strip and split to get the visibility value
+        #  Not sure if this is risky using the fq and better to use the request.args to get value
+        visibility = next((q.strip().split(":")[-1].strip('"') for q in fq.split() if 'visibility:' in q), 'all')
+        # Store the selected visibility in a global variable so the value can be re-selected on the visibility dataset search template
+        toolkit.g.visibility_selected = visibility
+        if visibility in ['private', 'public']:
+            capacity_fq = f"capacity:{visibility}"
+
+        # Remove the `visibility` from the `fq` search param as we've now used it to
+        fq = ' '.join(p for p in fq.split() if 'visibility:' not in p)
+
+    return capacity_fq, fq
