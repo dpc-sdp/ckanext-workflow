@@ -307,8 +307,7 @@ def send_notification_email(to, subject, msg):
         'recipient_email': to,
         'recipient_name': to,
         'subject': subject,
-        'body': msg,
-        'headers': {'reply-to': config.get('smtp.mail_from')}
+        'body': msg
     }
 
     try:
