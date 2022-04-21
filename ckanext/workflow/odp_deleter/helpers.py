@@ -153,14 +153,15 @@ def send_deletion_notification_email(template, data_dict, email_addresses=None):
 
     for email in email_addresses:
         try:
-            log.debug('Attempting to send {0} to: {1}'.format(template, email))
-            mail_dict = {
-                'recipient_name': email,
-                'recipient_email': email,
-                'subject': subject,
-                'body': body
-            }
-            mailer.mail_recipient(**mail_dict)
+            if email:
+                log.debug('Attempting to send {0} to: {1}'.format(template, email))
+                mail_dict = {
+                    'recipient_name': email,
+                    'recipient_email': email,
+                    'subject': subject,
+                    'body': body
+                }
+                mailer.mail_recipient(**mail_dict)
         except mailer.MailerException as e:
             log.error(u'Failed to send email {0} to {1}.'.format(template, email))
             log.error('Error: {}'.format(e))
