@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 def is_private_site_and_user_not_logged_in():
     private_site = config.get('ckan.victheme.internal_protected_site_read', True)
-    if private_site and (not g or not hasattr(g,'user')):
+    if private_site and toolkit.request and (not g or not hasattr(g,'user')):
         return True
     return False
 

@@ -25,7 +25,7 @@ def datavic_package_search(context, data_dict):
     log.debug("*** datavic_package_search PACKAGE_SEARCH ***")
     '''
     NOTE: This is copied directly from:
-    
+
         /ckan/default/src/ckan/ckan/logic/action/get.py
 
     And modified for use as per DATAVIC-56:
@@ -204,7 +204,10 @@ def datavic_package_search(context, data_dict):
         include_drafts = toolkit.asbool(data_dict.pop('include_drafts', False))
 
         # DATAVIC-56: Use the controller and action to set search params
-        controller_action = '{0}.{1}'.format(toolkit.c.controller, toolkit.c.action)
+        if toolkit.request:
+            controller_action = '{0}.{1}'.format(toolkit.get_endpoint())
+        else:
+            controller_action = "api.action"
 
         capacity_fq = 'capacity:"public"'
         if include_private and authz.is_sysadmin(user):
@@ -378,7 +381,7 @@ def datavic_package_search(context, data_dict):
 
 def _get_capacity_fq(fq):
     capacity_fq = None
-    if toolkit.get_endpoint() == ('dataset', 'search'):
+    if toolkit.request and toolkit.get_endpoint() == ('dataset', 'search'):
         # The selected visibility from the form comes through in the fq query as a string
         # Strip and split to get the visibility value
         #  Not sure if this is risky using the fq and better to use the request.args to get value
