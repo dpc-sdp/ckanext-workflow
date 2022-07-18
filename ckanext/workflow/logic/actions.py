@@ -205,7 +205,7 @@ def datavic_package_search(context, data_dict):
 
         # DATAVIC-56: Use the controller and action to set search params
         if toolkit.request:
-            controller_action = '{0}.{1}'.format(toolkit.get_endpoint())
+            controller_action = '{0}.{1}'.format(*toolkit.get_endpoint())
         else:
             controller_action = "api.action"
 
