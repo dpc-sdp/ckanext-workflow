@@ -55,7 +55,10 @@ def package_search_filter_query(username):
         return
 
     user = model.User.get(username)
-    user_organizations = user.get_groups('organization')
+    if user:
+        user_organizations = user.get_groups('organization')
+    else:
+        user_organizations = []
 
     # All logged in users can see:
     # - any datasets with organization_visibility set to All and workflow_status set to published
