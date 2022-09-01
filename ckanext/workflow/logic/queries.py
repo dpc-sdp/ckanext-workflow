@@ -1,11 +1,12 @@
-import ckan.authz as authz
-import ckan.model as model
 import logging
-from ckan.common import config
+import ckan.model as model
+import ckan.plugins.toolkit as toolkit
+
 from ckanext.workflow import helpers
 from pprint import pprint
 
 log1 = logging.getLogger(__name__)
+config = toolkit.config
 
 
 def organization_read_filter_query(organization_id, username):
@@ -13,9 +14,7 @@ def organization_read_filter_query(organization_id, username):
 
     organization = model.Group.get(organization_id)
 
-    rules = [
-        '(capacity:public AND workflow_status:"published" AND organization_visibility:"all")'
-    ]
+    rules = []
 
     # Return early if private site and non-logged in user..
     if helpers.is_private_site_and_user_not_logged_in():
@@ -59,10 +58,10 @@ def package_search_filter_query(username):
     user_organizations = user.get_groups('organization')
 
     # All logged in users can see:
-    # - any Published datasets with organization_visibility set to All
+    # - any datasets with organization_visibility set to All and workflow_status set to published
     # - "any unpublished records they have created themselves" (from client 18/10/2017)
     rules = [
-        '(capacity:public AND organization_visibility:"all")',
+        '(organization_visibility:"all" AND workflow_status:"published")',
         '(creator_user_id:{0} AND +state:(draft OR active))'.format(user.id)
     ]
 
@@ -86,12 +85,6 @@ def package_search_filter_query(username):
         # data records is limited to the Org ADMIN account holders and the EDITOR account
         # holder who created the data record itself
         if role in ['admin', 'editor', 'member']:
-            # ALL
-            # All users who have a role in an organisation should be able to see any dataset that has:
-            # workflow_status = 'published'
-            # organization_visibility = 'all
-            rules.append('(organization_visibility:"all" AND workflow_status:"published")')
-
             if role == 'admin':
                 query = '(owner_org:"{0}" AND organization_visibility:"{1}")'
             else:
