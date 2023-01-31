@@ -15,7 +15,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
-    version='0.0.1',
+    version='0.1.0',
 
     description='''This is a simple workflow solution for CKAN.''',
     long_description=long_description,
@@ -82,7 +82,6 @@ setup(
         [ckan.plugins]
         workflow=ckanext.workflow.workflow_plugin:WorkflowPlugin
         datavic_hierarchy_form=ckanext.workflow.hierarchy_form_plugin:DataVicHierarchyForm
-        odp_deleter = ckanext.workflow.odp_deleter.plugin:ODPDeleter
 
         [babel.extractors]
         ckan = ckan.lib.extract:extract_ckan
