@@ -1,9 +1,0 @@
-The following dataset has been deleted (purged) from the ODP {{ odp_url }} environment:
-
-Dataset ID: {{ id }}
-
-Dataset Name: {{ name }}
-
-Reason: Dataset deleted on IAR {{ environment|upper }} environment.
-
-Data: {{ pkg_dict|safe }}
