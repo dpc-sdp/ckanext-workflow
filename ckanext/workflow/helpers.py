@@ -318,8 +318,7 @@ def send_notification_email(to, subject, msg):
 
 def get_package_edit_url(package_name):
     return config.get('ckan.site_url', None) + toolkit.url_for(
-        controller='dataset',
-        action='edit',
+        'dataset.edit',
         id=package_name
     )
 
