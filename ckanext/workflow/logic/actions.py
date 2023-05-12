@@ -176,7 +176,10 @@ def datavic_package_search(context, data_dict):
 
     # check if some extension needs to modify the search params
     for item in plugins.PluginImplementations(plugins.IPackageController):
-        data_dict = item.before_search(data_dict)
+        if hasattr(item, "before_dataset_search"):
+            data_dict = item.before_dataset_search(data_dict)
+        else:
+            data_dict = item.before_search(data_dict)
 
     # the extension may have decided that it is not necessary to perform
     # the query
@@ -307,7 +310,10 @@ def datavic_package_search(context, data_dict):
                 if context.get('for_view'):
                     for item in plugins.PluginImplementations(
                             plugins.IPackageController):
-                        package_dict = item.before_view(package_dict)
+                        if hasattr(item, "before_dataset_view"):
+                            package_dict = item.before_dataset_view(package_dict)
+                        else:
+                            package_dict = item.before_view(package_dict)
                 results.append(package_dict)
             else:
                 log.error('No package_dict is coming from solr for package '
@@ -367,7 +373,10 @@ def datavic_package_search(context, data_dict):
 
     # check if some extension needs to modify the search results
     for item in plugins.PluginImplementations(plugins.IPackageController):
-        search_results = item.after_search(search_results, data_dict)
+        if hasattr(item, "after_dataset_search"):
+            search_results = item.after_dataset_search(search_results, data_dict)
+        else:
+            search_results = item.after_search(search_results, data_dict)
 
     # After extensions have had a chance to modify the facets, sort them by
     # display name.
