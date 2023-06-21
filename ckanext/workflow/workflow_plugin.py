@@ -104,7 +104,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
 
         return entity
 
-    def before_search(self, search_params):
+    def before_dataset_search(self, search_params):
         if helpers.is_private_site_and_user_not_logged_in():
             search_params['abort_search'] = True
         else:
@@ -112,10 +112,13 @@ class WorkflowPlugin(plugins.SingletonPlugin):
 
         return search_params
 
-    def before_view(self, pkg_dict):
+    def before_dataset_view(self, pkg_dict):
         if helpers.is_private_site_and_user_not_logged_in():
             toolkit.redirect_to('user_login')
         return pkg_dict
+
+    before_search = before_dataset_search
+    before_view = before_dataset_view
 
     def set_harvested_dataset_workflow_properties(self, entity):
         workflow_status = entity.extras.get('workflow_status', None)
