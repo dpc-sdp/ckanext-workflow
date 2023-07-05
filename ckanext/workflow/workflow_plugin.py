@@ -41,7 +41,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
 
     def create(self, entity):
         # DATAVIC-56: "Each dataset is initially created in a 'Draft' status"
-        if repr(toolkit.request) != '<LocalProxy unbound>' and toolkit.get_endpoint()[0] in ['package', 'dataset']:
+        if repr(toolkit.request) != '<LocalProxy unbound>' and toolkit.get_endpoint()[0] in ['package', 'dataset', "datavic_dataset"]:
             entity.extras['workflow_status'] = 'draft'
         # Harvester created datasets
         else:
@@ -52,7 +52,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def edit(self, entity):
 
         # Datasets updated through the UI need to be handled differently that those updated via the Harvester
-        if repr(toolkit.request) != '<LocalProxy unbound>' and toolkit.get_endpoint()[0] in ['package', 'dataset']:
+        if repr(toolkit.request) != '<LocalProxy unbound>' and toolkit.get_endpoint()[0] in ['package', 'dataset', "datavic_dataset"]:
             user = toolkit.g.userobj
             role = helpers.role_in_org(entity.owner_org, user.name)
 
