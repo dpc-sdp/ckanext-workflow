@@ -1,9 +1,9 @@
 import logging
+
 import ckan.model as model
 import ckan.plugins.toolkit as toolkit
 
 from ckanext.workflow import helpers
-from pprint import pprint
 
 log1 = logging.getLogger(__name__)
 config = toolkit.config
@@ -13,16 +13,13 @@ def organization_read_filter_query(organization_id, username):
     log1.debug('*** PACKAGE_SEARCH | organization_read_filter_query | organization_id: %s ***' % organization_id)
 
     organization = model.Group.get(organization_id)
+    user = model.User.get(username)
 
     rules = []
 
-    # Return early if private site and non-logged in user..
-    if helpers.is_private_site_and_user_not_logged_in():
-        return ' ( {0} ) '.format(' OR '.join(rule for rule in rules))
-
     role = helpers.role_in_org(organization_id, username)
 
-    if not role is None:
+    if role or user.sysadmin:
         log1.debug('*** User belongs to organization `%s` | role: %s - no further querying required ***', organization.name, role)
         user = model.User.get(username)
         # Of course the user can see any datasets they have created
@@ -41,18 +38,11 @@ def organization_read_filter_query(organization_id, username):
                 rules.append('(owner_org:"{0}" AND organization_visibility:"{1}" AND workflow_status:"published")'.format(organization_id, relationship))
 
     rules = ' ( {0} ) '.format(' OR '.join(rule for rule in rules))
-    # DEBUG:
-    if config.get('debug', False):
-        print(">>>>>>>>>>>>>>>>>>>>>>>>> organization_read_filter_query RULES: <<<<<<<<<<<<<<<<<<<<<<<<<<")
-        pprint(rules)
 
     return rules
 
-
 def package_search_filter_query(username):
     # Return early if private site and non-logged in user..
-    if helpers.is_private_site_and_user_not_logged_in():
-        return
 
     user = model.User.get(username)
     user_organizations = user.get_groups('organization')
@@ -85,7 +75,7 @@ def package_search_filter_query(username):
         # data records is limited to the Org ADMIN account holders and the EDITOR account
         # holder who created the data record itself
         if role in ['admin', 'editor', 'member']:
-            if role == 'admin':
+            if role == 'admin' or user.sysadmin:
                 query = '(owner_org:"{0}" AND organization_visibility:"{1}")'
             else:
                 # For 'editor' and 'member' users
@@ -111,10 +101,5 @@ def package_search_filter_query(username):
                 rules.append(query.format(descendant.id, 'family'))
 
     rules = ' ( {0} ) '.format(' OR '.join(rule for rule in rules))
-
-    # DEBUG:
-    if config.get('debug', False):
-        print(">>>>>>>>>>>>>>>>>>>>>>>>> package_search_filter_query RULES: <<<<<<<<<<<<<<<<<<<<<<<<<<")
-        pprint(rules)
 
     return rules
