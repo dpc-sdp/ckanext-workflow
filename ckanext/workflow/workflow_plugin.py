@@ -149,10 +149,6 @@ class WorkflowPlugin(plugins.SingletonPlugin):
 
         search_params["fq"] = fq
 
-        print("***")
-        print(search_params["fq"])
-        print("***")
-
         return search_params
 
     before_search = before_dataset_search
