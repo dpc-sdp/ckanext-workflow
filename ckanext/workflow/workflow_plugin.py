@@ -137,13 +137,8 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                 org_fq = queries.organization_read_filter_query(
                     organization_id, toolkit.current_user.name
                 )
+                fq += org_fq
 
-            if "owner_org:" in fq:
-                # Remove the `owner_org` from the `fq` search param as we've now used it to
-                # reconstruct the search params for Organization view
-                fq = " ".join(p for p in fq.split() if "owner_org:" not in p)
-
-            fq += org_fq
         elif controller_action == "dataset.search":
             fq += queries.package_search_filter_query(toolkit.current_user.name)
 

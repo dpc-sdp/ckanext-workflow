@@ -17,6 +17,9 @@ def organization_read_filter_query(organization_id, username):
 
     rules = []
 
+    if not user:
+        return ""
+
     role = helpers.role_in_org(organization_id, username)
 
     if role or user.sysadmin:
