@@ -22,12 +22,11 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         toolkit.add_template_directory(config, "templates_workflow")
 
     # IAuthFunctions
-
     def get_auth_functions(self):
         return {
-            "organization_create": auth.organization_create,
-            "organization_update": auth.organization_update,
-            "package_show": auth.iar_package_show,
+            'organization_create': auth.organization_create,
+            'organization_update': auth.organization_update,
+            'package_show': auth.package_show,
         }
 
     # IPackageController
@@ -110,6 +109,9 @@ class WorkflowPlugin(plugins.SingletonPlugin):
     def before_dataset_search(self, search_params):
         search_params["include_private"] = True
 
+        if not search_params.get("fq"):
+            search_params["fq"] = ""
+
         ext_visibility = search_params["extras"].get("ext_visibility", "all")
 
         visibility_mapping = {"all": "*", "private": "private", "public": "public"}
@@ -140,7 +142,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                 fq += org_fq
 
         elif controller_action == "dataset.search":
-            fq += queries.package_search_filter_query(toolkit.current_user.name)
+            fq += queries.package_search_filter_query(toolkit.current_user)
 
         search_params["fq"] = fq
 
