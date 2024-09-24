@@ -54,6 +54,9 @@ def organization_read_filter_query(organization_id, username):
                     f'(owner_org:"{organization_id}" AND organization_visibility:"{relationship}" AND workflow_status:"published")'
                 )
 
+    if toolkit.config["ckan.auth.allow_dataset_collaborators"]:
+        add_collaborators_filter(rules, user)
+
     rules = " ( {0} ) ".format(" OR ".join(rule for rule in rules))
 
     return rules
@@ -76,14 +79,7 @@ def package_search_filter_query(user: model.User | model.AnonymousUser):
     ]
 
     if toolkit.config["ckan.auth.allow_dataset_collaborators"]:
-        user_labels = lib_plugins.get_permission_labels().get_user_dataset_labels(user)
-
-        # support dataset collaborators
-        for permission_label in user_labels:
-            if not permission_label.startswith("collaborator"):
-                continue
-
-            rules.append(f'(permission_labels:"{permission_label}")')
+        add_collaborators_filter(rules, user)
 
     for organization in user_organizations:
         role = helpers.role_in_org(organization.id, user.name)
@@ -135,3 +131,15 @@ def package_search_filter_query(user: model.User | model.AnonymousUser):
     rules = " ( {0} ) ".format(" OR ".join(rule for rule in rules))
 
     return rules
+
+
+def add_collaborators_filter(rules: list, user: model.User) -> list:
+    """Add rules to filter datasets by collaborators"""
+
+    user_labels = lib_plugins.get_permission_labels().get_user_dataset_labels(user)
+
+    for permission_label in user_labels:
+        if not permission_label.startswith("collaborator"):
+            continue
+
+        rules.append(f'(permission_labels:"{permission_label}")')
