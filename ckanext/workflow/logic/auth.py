@@ -1,73 +1,82 @@
+from __future__ import annotations
+
 import ckan.authz as authz
-import ckan.plugins.toolkit as toolkit
+import ckan.plugins.toolkit as tk
 import logging
 
+import ckan.types as types
 from ckan.logic.auth import get_package_object
-from ckan.lib.plugins import get_permission_labels
+
+# from ckan.lib.plugins import get_permission_labels
 from ckanext.workflow import helpers
 
-_ = toolkit._
+
 log = logging.getLogger(__name__)
 
 
-def iar_package_show(context, data_dict):
-    user = context.get('user')
+@tk.chained_auth_function
+@tk.auth_allow_anonymous_access
+def package_show(
+    next_auth: types.AuthFunction,
+    context: types.Context,
+    data_dict: types.DataDict,
+) -> types.AuthResult:
+    user = context.get("user")
     package = get_package_object(context, data_dict)
 
     # DATAVIC: Apply organisation visibility rules if the dataset is marked private
-    if toolkit.asbool(package.private) \
-            and package.extras \
-            and helpers.user_can_view_private_dataset(package, user):
-        return {'success': True}
+    if (
+        tk.asbool(package.private)
+        and package.extras
+        and helpers.user_can_view_private_dataset(package, user)
+    ):
+        return {"success": True}
 
-    # Otherwise: we can use the default rules.
-    labels = get_permission_labels()
-    user_labels = labels.get_user_dataset_labels(context['auth_user_obj'])
-    authorized = any(
-        dl in user_labels for dl in labels.get_dataset_labels(package))
-
-    if not authorized:
-        return {
-            'success': False,
-            'msg': _('User %s not authorized to read package %s') % (user, package.id)}
-    else:
-        return {'success': True}
+    return next_auth(context, data_dict)
 
 
 def organization_create(context, data_dict=None):
-    user = toolkit.g.userobj
-    # Sysadmin can do anything
-    if authz.is_sysadmin(user.name):
-        return {'success': True}
+    """Custom code: if user is an admin in any org, allow him to create orgs"""
+    if authz.is_sysadmin(tk.current_user.name):
+        return {"success": True}
 
     if not authz.auth_is_anon_user(context):
-        orgs = helpers.get_user_organizations(user.name)
+        orgs = helpers.get_user_organizations(tk.current_user.name)
         for org in orgs:
-            role = helpers.role_in_org(org.id, user.name)
-            if role == 'admin':
-                return {'success': True}
+            role = helpers.role_in_org(org.id, tk.current_user.name)
+            if role == "admin":
+                return {"success": True}
 
-    return {'success': False, 'msg': 'Only user level admin or above can create an organisation.'}
+    return {
+        "success": False,
+        "msg": "Only user level admin or above can create an organisation.",
+    }
 
 
 def organization_update(context, data_dict=None):
-    user = toolkit.g.userobj
-    # Sysadmin can do anything
-    if authz.is_sysadmin(user.name):
-        return {'success': True}
+    if authz.is_sysadmin(tk.current_user.name):
+        return {"success": True}
 
-    if not authz.auth_is_anon_user(context):
+    if authz.auth_is_anon_user(context):
+        return {
+            "success": False,
+            "msg": "Only user level admin or above can update an organisation.",
+        }
 
-        if data_dict is not None and 'id' in data_dict:
-            organization_id = data_dict['id']
-        elif 'group' in context:
-            organization_id = context['group'].id
-        else:
-            log.debug('Scenario not accounted for in ckanext-workflow > plugin.py')
+    if data_dict is not None and "id" in data_dict:
+        organization_id = data_dict["id"]
+    elif "group" in context:
+        organization_id = context["group"].id
+    else:
+        log.debug("Scenario not accounted for in ckanext-workflow > plugin.py")
+        return {"success": False, "msg": "Missing organization ID."}
 
-        if organization_id:
-            role = helpers.role_in_org(organization_id, user.name)
-            if role == 'admin':
-                return {'success': True}
+    if organization_id:
+        role = helpers.role_in_org(organization_id, tk.current_user.name)
+        if role == "admin":
+            return {"success": True}
 
-    return {'success': False, 'msg': 'Only user level admin or above can update an organisation.'}
+    return {
+        "success": False,
+        "msg": "Only user level admin or above can update an organisation.",
+    }

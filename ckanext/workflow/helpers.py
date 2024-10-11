@@ -15,15 +15,6 @@ get_or_bust = toolkit.get_or_bust
 log = logging.getLogger(__name__)
 
 
-def is_private_site_and_user_not_logged_in():
-    private_site = config.get('ckan.victheme.internal_protected_site_read', True)
-    if private_site and toolkit.request and (not g or not hasattr(g,'user')):
-        return True
-    return False
-
-#
-
-
 def load_workflow_settings():
     '''
     Load some config info from a json file
@@ -99,25 +90,17 @@ def is_user_in_child_organization(organization, user_organizations):
 
 
 def is_user_in_family_organization(organization, user_organizations):
-    debug = config.get('debug', False)
-    log.debug("*** CHECKING: FAMILY...")
-    if debug:
-        from pprint import pprint
-        print(">>> Users organisations:")
-        pprint(user_organizations)
     ancestors = organization.get_parent_group_hierarchy('organization')
+
     # Check if the user belongs to an ancestor of the dataset owner organisation
     if find_match_in_list(ancestors, user_organizations):
         return True
     else:
         # If user does not belong to any ancestors, checked the descendants of the ancestors
-        log.debug("*** User not found in any Ancestors... Checking in Ancestor Descendants...")
         if ancestors:
             for ancestor in ancestors:
                 descendants = ancestor.get_children_group_hierarchy('organization')
-                if debug:
-                    print(">>> List of descendants for ancestor %s:" % ancestor.name)
-                    pprint(descendants)
+
                 if find_match_in_list(descendants, user_organizations):
                     return True
     return False
