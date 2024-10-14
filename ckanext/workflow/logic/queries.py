@@ -34,11 +34,10 @@ def organization_read_filter_query(organization_id, username):
             organization.name,
             role,
         )
-        user = model.User.get(username)
         # Of course the user can see any datasets they have created
         rules.append(f'(owner_org:"{organization_id}" AND creator_user_id:"{user.id}")')
         # Admin can see unpublished datasets in organisations they are members of
-        if role in ["admin", "editor"]:
+        if role in ["admin", "editor"] or user.sysadmin:
             rules.append(f'(owner_org:"{organization_id}")')
         else:
             # The user can see any published datasets in their own organisation
