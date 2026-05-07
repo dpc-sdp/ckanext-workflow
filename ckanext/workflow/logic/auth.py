@@ -37,13 +37,14 @@ def package_show(
 
 def organization_create(context, data_dict=None):
     """Custom code: if user is an admin in any org, allow him to create orgs"""
-    if authz.is_sysadmin(tk.current_user.name):
+    user_name = tk.current_user.name if tk.current_user else None
+    if authz.is_sysadmin(user_name):
         return {"success": True}
 
     if not authz.auth_is_anon_user(context):
-        orgs = helpers.get_user_organizations(tk.current_user.name)
+        orgs = helpers.get_user_organizations(user_name)
         for org in orgs:
-            role = helpers.role_in_org(org.id, tk.current_user.name)
+            role = helpers.role_in_org(org.id, user_name)
             if role == "admin":
                 return {"success": True}
 
@@ -54,7 +55,8 @@ def organization_create(context, data_dict=None):
 
 
 def organization_update(context, data_dict=None):
-    if authz.is_sysadmin(tk.current_user.name):
+    user_name = tk.current_user.name if tk.current_user else None
+    if authz.is_sysadmin(user_name):
         return {"success": True}
 
     if authz.auth_is_anon_user(context):
@@ -72,7 +74,7 @@ def organization_update(context, data_dict=None):
         return {"success": False, "msg": "Missing organization ID."}
 
     if organization_id:
-        role = helpers.role_in_org(organization_id, tk.current_user.name)
+        role = helpers.role_in_org(organization_id, user_name)
         if role == "admin":
             return {"success": True}
 

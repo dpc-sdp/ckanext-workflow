@@ -188,11 +188,10 @@ def apply_admin_workflow_status_rules(current_workflow_status, workflow_status):
 
 
 def get_workflow_status_for_role(current_workflow_status, workflow_status, user_name, owner_org_id):
-    user = g.userobj
-    role = role_in_org(owner_org_id, user.name)
+    role = role_in_org(owner_org_id, user_name)
 
     # Sysadmin can do whatever they like..
-    if not authz.is_sysadmin(user.name):
+    if not authz.is_sysadmin(user_name):
         # Validate the workflow_status in context of the user's role
         if role == 'editor':
             workflow_status = apply_editor_workflow_status_rules(current_workflow_status, workflow_status)
@@ -374,8 +373,8 @@ def user_can_view_private_dataset(package, user_name):
 
 
 def is_sysadmin():
-    user = g.userobj
-    if authz.is_sysadmin(user.name):
+    user_name = toolkit.current_user.name if toolkit.current_user else None
+    if authz.is_sysadmin(user_name):
         return True
 
     return False
@@ -404,18 +403,23 @@ def is_workflow_enabled(id):
 
 def get_activity_diffs(id):
     '''
-    Get last package_activity_list item
+    Get last package_activity_list item for package activity only.
 
     Returns the activity_diff for that activity_item_id
 
     TODO: Check if we need to include `include_hidden_activity`
     '''
+    user = toolkit.current_user if toolkit.current_user else None
+    user_name = user.name if user else None
     context = {
         u'model': model, u'session': model.Session,
-        u'user': g.user, u'auth_user_obj': g.userobj
+        u'user': user_name, u'auth_user_obj': user
     }
     pkg_activity_list = get_action(u'package_activity_list')(context, {
-        u'id': id, 'limit': 1})
+        u'id': id,
+        'limit': 1,
+        'activity_types': ['new package', 'changed package'],
+    })
 
     if pkg_activity_list:
         activity_diff = get_action('activity_show')(context, {
@@ -428,9 +432,9 @@ def get_activity_diffs(id):
 
 
 def show_top_level_option(group_id, selected_parent):
-    user = g.user
+    user_name = toolkit.current_user.name if toolkit.current_user else None
     # No restrictions for `sysadmin` users
-    if authz.is_sysadmin(user):
+    if authz.is_sysadmin(user_name):
         return True
     else:
         # Only apply this behaviour if role cascading disabled..
