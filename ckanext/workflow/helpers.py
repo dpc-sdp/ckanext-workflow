@@ -404,7 +404,7 @@ def is_workflow_enabled(id):
 
 def get_activity_diffs(id):
     '''
-    Get last package_activity_list item
+    Get last package_activity_list item for package activity only.
 
     Returns the activity_diff for that activity_item_id
 
@@ -415,7 +415,10 @@ def get_activity_diffs(id):
         u'user': g.user, u'auth_user_obj': g.userobj
     }
     pkg_activity_list = get_action(u'package_activity_list')(context, {
-        u'id': id, 'limit': 1})
+        u'id': id,
+        'limit': 1,
+        'activity_types': ['new package', 'changed package'],
+    })
 
     if pkg_activity_list:
         activity_diff = get_action('activity_show')(context, {

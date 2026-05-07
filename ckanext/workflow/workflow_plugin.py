@@ -68,16 +68,13 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                 entity.private = True
 
             # BEGIN: DATAVIC-251 CKAN 2.9 upgrade
-            # BEGIN: DATAVIC-251 CKAN 2.9 upgrade
-            from pprint import pprint
-
             activity_diffs = helpers.get_activity_diffs(entity.id)
             # Check if there are recorded activities
             if activity_diffs:
-                # pprint(activity_diffs.get('activities')[0])
-                previous_workflow_status = (
-                    activity_diffs.get("data").get("package").get("workflow_status")
-                )
+                pkg_data = (
+                    activity_diffs.get("data") or {}
+                ).get("package") or {}
+                previous_workflow_status = pkg_data.get("workflow_status")
 
                 if workflow_status != previous_workflow_status:
                     # If workflow_status changes from draft to ready_for_approval..
