@@ -49,8 +49,8 @@ class WorkflowPlugin(plugins.SingletonPlugin):
         if repr(toolkit.request) != "<LocalProxy unbound>" and toolkit.get_endpoint()[
             0
         ] in ["package", "dataset", "datavic_dataset"]:
-            user = toolkit.g.userobj
-            role = helpers.role_in_org(entity.owner_org, user.name)
+            user_name = toolkit.current_user.name if toolkit.current_user else None
+            role = helpers.role_in_org(entity.owner_org, user_name)
 
             workflow_status = entity.extras.get("workflow_status", None)
             organization_visibility = entity.extras.get("organization_visibility", None)
@@ -61,23 +61,20 @@ class WorkflowPlugin(plugins.SingletonPlugin):
             if workflow_status == "published" and organization_visibility == "all":
                 # Super Admins can publish datasets
                 # The only other user that can publish datasets are admins of the organization
-                if not authz.is_sysadmin(user.name) and not role == "admin":
+                if not authz.is_sysadmin(user_name) and not role == "admin":
                     entity.private = True
             else:
                 # Dataset is Private until workflow_status becomes "published"
                 entity.private = True
 
             # BEGIN: DATAVIC-251 CKAN 2.9 upgrade
-            # BEGIN: DATAVIC-251 CKAN 2.9 upgrade
-            from pprint import pprint
-
             activity_diffs = helpers.get_activity_diffs(entity.id)
             # Check if there are recorded activities
             if activity_diffs:
-                # pprint(activity_diffs.get('activities')[0])
-                previous_workflow_status = (
-                    activity_diffs.get("data").get("package").get("workflow_status")
-                )
+                pkg_data = (
+                    activity_diffs.get("data") or {}
+                ).get("package") or {}
+                previous_workflow_status = pkg_data.get("workflow_status")
 
                 if workflow_status != previous_workflow_status:
                     # If workflow_status changes from draft to ready_for_approval..
@@ -86,7 +83,7 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                         and workflow_status == "ready_for_approval"
                     ):
                         helpers.notify_admin_users(
-                            entity.owner_org, user.name, entity.name
+                            entity.owner_org, user_name, entity.name
                         )
                     # Else, if workflow_status changes from ready_for_approval back to draft..
                     elif (

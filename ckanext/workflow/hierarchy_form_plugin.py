@@ -1,3 +1,4 @@
+from re import T
 import ckan.authz as authz
 import ckan.model as model
 import ckan.plugins as plugins
@@ -43,9 +44,9 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
         #from pylons import tmpl_context as c
 
         #  DataVic - we filter these in context of logged in user
-        user = toolkit.g.userobj
+        user_name = toolkit.current_user.name if toolkit.current_user else None
 
-        if authz.is_sysadmin(user.name):
+        if authz.is_sysadmin(user_name):
             toolkit.g.allowable_parent_groups = model.Group.all(
                 group_type='organization')
         else:
@@ -55,6 +56,6 @@ class DataVicHierarchyForm(plugins.SingletonPlugin, DefaultOrganizationForm):
                 toolkit.g.allowable_parent_groups = \
                     group.groups_allowed_to_be_its_parent(type='organization')
             else:
-                context = {'user': toolkit.g.user}
+                context = {'user': user_name}
                 data_dict = {'permission': None}
                 toolkit.g.allowable_parent_groups = toolkit.get_action('organization_list_for_user')(context, data_dict)
