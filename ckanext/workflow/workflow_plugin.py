@@ -82,8 +82,12 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                         previous_workflow_status == "draft"
                         and workflow_status == "ready_for_approval"
                     ):
+                        workflow_status_notes = entity.extras.get(
+                            "workflow_status_notes"
+                        )
+
                         helpers.notify_admin_users(
-                            entity.owner_org, user_name, entity.name
+                            entity.owner_org, user_name, entity.name, workflow_status_notes
                         )
                     # Else, if workflow_status changes from ready_for_approval back to draft..
                     elif (
