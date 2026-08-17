@@ -274,12 +274,12 @@ def get_admin_users_for_org(owner_org):
     for member in member_list:
         user = model.User.get(member[0])
         if user and user.email:
-            admin_users.append(user.email)
+            admin_users.append({'email': user.email, 'name': user.name})
 
     return admin_users
 
 
-def send_notification_email(to, subject, msg):
+def send_notification_email(to, subject, msg, msg_html=None):
     if not to:
         log.warning('send_notification_email: No email set for user')
         return
@@ -289,7 +289,8 @@ def send_notification_email(to, subject, msg):
         'recipient_email': to,
         'recipient_name': to,
         'subject': subject,
-        'body': msg
+        'body': msg,
+        'body_html': msg_html
     }
 
     try:
@@ -305,42 +306,82 @@ def get_package_edit_url(package_name):
     )
 
 
-def notify_admin_users(owner_org, user_name, package_name):
+def notify_admin_users(owner_org, user_name, package_name, notes):
     admin_users = get_admin_users_for_org(owner_org)
 
     if admin_users:
         org = model.Group.get(owner_org)
-
-        msg = toolkit.render('email/notification-admin.txt',
-                             extra_vars={
-                                 'organization': org.name,
-                                 'user': user_name,
-                                 'url': get_package_edit_url(package_name)
-                             })
+        url = get_package_edit_url(package_name)
+        site_title = config.get('ckan.site_title', '')
 
         for user in admin_users:
+            msg = toolkit.render(
+                'email/notification-admin.txt',
+                extra_vars={
+                    'organization': org.name,
+                    'user': user_name,
+                    'url': url,
+                    'notes': notes,
+                    'admin_user': user['name'],
+                    'package_name': package_name,
+                    'site_title': site_title
+                }
+            )
+            msg_html = toolkit.render(
+                'email/notification-admin.html',
+                extra_vars={
+                    'organization': org.name,
+                    'user': user_name,
+                    'url': url,
+                    'notes': notes,
+                    'admin_user': user['name'],
+                    'package_name': package_name,
+                    'site_title': site_title
+                }
+            )
+
             send_notification_email(
-                user,
-                "Workflow status change",
-                msg
+                user['email'],
+                "{} requires your approval".format(package_name),
+                msg,
+                msg_html
             )
 
 
 def notify_creator(package_name, creator_user_id, notes=None):
     user = model.User.get(creator_user_id)
+    url = get_package_edit_url(package_name)
+    site_title = config.get('ckan.site_title', '')
+
     if user and user.email:
-        msg = toolkit.render('email/notification-creator.txt',
-                             extra_vars={
-                                 'name': user.name,
-                                 'email': user.email,
-                                 'url': get_package_edit_url(package_name),
-                                 'notes': notes
-                             })
+        msg = toolkit.render(
+            'email/notification-creator.txt',
+            extra_vars={
+                'name': user.name,
+                'email': user.email,
+                'url': url,
+                'notes': notes,
+                'package_name': package_name,
+                'site_title': site_title
+            }
+        )
+        msg_html = toolkit.render(
+            'email/notification-creator.html',
+            extra_vars={
+                'name': user.name,
+                'email': user.email,
+                'url': url,
+                'notes': notes,
+                'package_name': package_name,
+                'site_title': site_title
+            }
+        )
 
         send_notification_email(
             user.email,
-            'Dataset workflow changed to Draft',
-            msg
+            '{} has been returned to draft'.format(package_name),
+            msg,
+            msg_html
         )
     return
 

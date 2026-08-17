@@ -1,0 +1,9 @@
+<p>Hi {{name}},</p>
+
+<p>A dataset associated with your account ({{email}}) has been set to Draft.</p>
+
+{% if notes %}
+    <p style="white-space: pre-line;">{{ notes }}</p>
+{% endif %}
+
+<p>Please click here to review this dataset: <br/><a href="{{url}}">{{url}}</a></p>
