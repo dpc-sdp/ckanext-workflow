@@ -1,0 +1,9 @@
+<p>Hi {{ admin_user }},</p>
+
+<p>A dataset belonging to the `{{organization}}` organisation has been set to Ready for Approval by the following user:<br/>{{user}}</p>
+
+{% if notes %}
+    <p style="white-space: pre-line;">{{ notes }}</p>
+{% endif %}
+
+<p>Please click here to review this dataset: <br/><a href="{{url}}">{{url}}</a></p>
