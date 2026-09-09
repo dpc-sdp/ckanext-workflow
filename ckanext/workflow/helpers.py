@@ -273,7 +273,7 @@ def get_admin_users_for_org(owner_org):
 
     for member in member_list:
         user = model.User.get(member[0])
-        if user and user.email:
+        if user and user.email and user.state == model.State.ACTIVE:
             admin_users.append({'email': user.email, 'name': user.name})
 
     return admin_users
