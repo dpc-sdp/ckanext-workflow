@@ -306,82 +306,58 @@ def get_package_edit_url(package_name):
     )
 
 
-def notify_admin_users(owner_org, user_name, package_name, notes):
+def notify_admin_users(owner_org, user_name, package_name, notes, package_title=None):
     admin_users = get_admin_users_for_org(owner_org)
 
     if admin_users:
         org = model.Group.get(owner_org)
         url = get_package_edit_url(package_name)
         site_title = config.get('ckan.site_title', '')
+        package_title = package_title or package_name
 
         for user in admin_users:
-            msg = toolkit.render(
-                'email/notification-admin.txt',
-                extra_vars={
-                    'organization': org.name,
-                    'user': user_name,
-                    'url': url,
-                    'notes': notes,
-                    'admin_user': user['name'],
-                    'package_name': package_name,
-                    'site_title': site_title
-                }
-            )
-            msg_html = toolkit.render(
-                'email/notification-admin.html',
-                extra_vars={
-                    'organization': org.name,
-                    'user': user_name,
-                    'url': url,
-                    'notes': notes,
-                    'admin_user': user['name'],
-                    'package_name': package_name,
-                    'site_title': site_title
-                }
-            )
+            extra_vars = {
+                'organization': org.name,
+                'organization_title': org.title or org.name,
+                'user': user_name,
+                'url': url,
+                'notes': notes,
+                'admin_user': user['name'],
+                'package_name': package_name,
+                'package_title': package_title,
+                'site_title': site_title
+            }
 
             send_notification_email(
                 user['email'],
-                "{} requires your approval".format(package_name),
-                msg,
-                msg_html
+                "{} requires your approval".format(package_title),
+                toolkit.render('email/notification-admin.txt', extra_vars=extra_vars),
+                toolkit.render('email/notification-admin.html', extra_vars=extra_vars)
             )
 
 
-def notify_creator(package_name, creator_user_id, notes=None):
+def notify_creator(package_name, creator_user_id, notes=None, package_title=None):
     user = model.User.get(creator_user_id)
     url = get_package_edit_url(package_name)
     site_title = config.get('ckan.site_title', '')
+    package_title = package_title or package_name
 
     if user and user.email:
-        msg = toolkit.render(
-            'email/notification-creator.txt',
-            extra_vars={
-                'name': user.name,
-                'email': user.email,
-                'url': url,
-                'notes': notes,
-                'package_name': package_name,
-                'site_title': site_title
-            }
-        )
-        msg_html = toolkit.render(
-            'email/notification-creator.html',
-            extra_vars={
-                'name': user.name,
-                'email': user.email,
-                'url': url,
-                'notes': notes,
-                'package_name': package_name,
-                'site_title': site_title
-            }
-        )
+        extra_vars = {
+            'name': user.name,
+            'email': user.email,
+            'url': url,
+            'notes': notes,
+            'package_name': package_name,
+            'package_title': package_title,
+            'site_title': site_title
+        }
 
         send_notification_email(
             user.email,
-            '{} has been returned to draft'.format(package_name),
-            msg,
-            msg_html
+            '{} has been returned to draft'.format(package_title),
+            toolkit.render('email/notification-creator.txt', extra_vars=extra_vars),
+            toolkit.render('email/notification-creator.html', extra_vars=extra_vars)
         )
     return
 

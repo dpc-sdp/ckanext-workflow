@@ -87,7 +87,8 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                         )
 
                         helpers.notify_admin_users(
-                            entity.owner_org, user_name, entity.name, workflow_status_notes
+                            entity.owner_org, user_name, entity.name, workflow_status_notes,
+                            package_title=entity.title,
                         )
                     # Else, if workflow_status changes from ready_for_approval back to draft..
                     elif (
@@ -99,7 +100,8 @@ class WorkflowPlugin(plugins.SingletonPlugin):
                         )
 
                         helpers.notify_creator(
-                            entity.name, entity.creator_user_id, workflow_status_notes
+                            entity.name, entity.creator_user_id, workflow_status_notes,
+                            package_title=entity.title,
                         )
         # Handle datasets updated through the Harvester differently
         else:
