@@ -1,8 +1,10 @@
-Hi there,
+Hi {{ admin_user }},
 
 A dataset belonging to the `{{organization}}` organisation has been set to Ready for Approval by the following user:
 
 {{user}}
+
+{% if notes %}{{ notes }}{% endif %}
 
 Please click here to review this dataset:
 
