@@ -55,7 +55,8 @@ def get_available_workflow_statuses(current_workflow_status, owner_org, user):
 
     user_workflow_options = get_workflow_status_options_for_role(settings['roles'], role)
 
-    return list(set(workflow_options).intersection(user_workflow_options))
+    # Keep the workflow's order: the form preselects the first option when the current status isn't offered.
+    return [status for status in workflow_options if status in user_workflow_options]
 
 
 def get_organization_id(data_dict, fq):
